@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -25,7 +26,9 @@ func (c *GeneralConfig) UnmarshalJSON(data []byte) error {
 		LogLevel string `json:"log_level"`
 	}
 
-	if err := json.Unmarshal(data, &raw); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&raw); err != nil {
 		return err
 	}
 
