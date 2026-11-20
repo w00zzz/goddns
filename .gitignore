@@ -19,6 +19,7 @@ state.json
 
 # Cobertura y perfiles de Go
 coverage.out
+coverage.html
 *.coverprofile
 *.pprof
 
