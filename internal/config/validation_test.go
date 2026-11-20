@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -29,6 +30,27 @@ func validConfig() Config {
 func TestConfigValidate(t *testing.T) {
 	if err := validConfig().Validate(); err != nil {
 		t.Fatalf("valid configuration rejected: %v", err)
+	}
+}
+
+func TestConfigValidateRequiresProvider(t *testing.T) {
+	cfg := validConfig()
+	cfg.DNS.Provider = ""
+
+	err := cfg.Validate()
+	if err == nil || !strings.Contains(err.Error(), "dns.provider is required") {
+		t.Fatalf("Validate() error = %v, want message containing %q", err, "dns.provider is required")
+	}
+}
+
+func TestConfigValidateRequiresIPVersion(t *testing.T) {
+	cfg := validConfig()
+	cfg.Discovery.IPv4 = false
+	cfg.Discovery.IPv6 = false
+
+	err := cfg.Validate()
+	if err == nil || !strings.Contains(err.Error(), "discovery must enable ipv4 or ipv6") {
+		t.Fatalf("Validate() error = %v, want message containing %q", err, "discovery must enable ipv4 or ipv6")
 	}
 }
 
