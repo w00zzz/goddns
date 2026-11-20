@@ -5,8 +5,12 @@
   },
   "dns": {
     "provider": "simply",
+    "mode": "dyndns2",
     "domain": "lumiar.info",
     "host": "home",
+    "product": "lumiar.info",
+    "record_id": 0,
+    "ttl": 3600,
     "credentials": {
       "account": "test",
       "api_key": "test_api_key"
