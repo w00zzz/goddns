@@ -1,0 +1,28 @@
+{
+  "general": {
+    "interval": 10,
+    "log_level": "info"
+  },
+  "dns": {
+    "provider": "simply",
+    "domain": "lumiar.info",
+    "hosts": "home",
+    "credentials": {
+      "account": "test",
+      "api_key": "test_api_key"
+    }
+  },
+  "discovery": {
+    "ipv4": true,
+    "ipv6": false,
+    "sources": [
+      "https://api.ipify.org",
+      "https://icanhazip.com",
+      "https://ifconfig.me/ip"
+    ],
+    "min_consensus": 2
+  },
+  "state": {
+    "path": "/var/db/goddns/state.json"
+  }
+}
