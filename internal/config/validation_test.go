@@ -62,7 +62,12 @@ func TestConfigValidateRejectsInvalidValues(t *testing.T) {
 		{"interval", func(c *Config) { c.General.Interval = 0 }},
 		{"log level", func(c *Config) { c.General.LogLevel = "trace" }},
 		{"provider", func(c *Config) { c.DNS.Provider = "cloudflare" }},
+		{"mode", func(c *Config) { c.DNS.Mode = "invalid" }},
+		{"rest product", func(c *Config) { c.DNS.Mode = "rest" }},
+		{"record id", func(c *Config) { c.DNS.RecordID = -1 }},
+		{"ttl", func(c *Config) { c.DNS.TTL = -1 }},
 		{"domain", func(c *Config) { c.DNS.Domain = "" }},
+
 		{"host", func(c *Config) { c.DNS.Host = "" }},
 		{"account", func(c *Config) { delete(c.DNS.Credentials, "account") }},
 		{"api key", func(c *Config) { delete(c.DNS.Credentials, "api_key") }},
