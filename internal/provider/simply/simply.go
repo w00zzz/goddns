@@ -15,6 +15,10 @@ func New(account, apiKey string, httpClient *http.Client) *Provider {
 	return &Provider{client: NewClient(account, apiKey, httpClient)}
 }
 
+func NewConfigured(cfg Config) *Provider {
+	return &Provider{client: newClient(cfg)}
+}
+
 func (p *Provider) Name() string {
 	return "simply"
 }
