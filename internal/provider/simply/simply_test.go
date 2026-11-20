@@ -2,6 +2,7 @@ package simply
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,7 +31,7 @@ func TestProviderUpdateRecord(t *testing.T) {
 	defer server.Close()
 
 	p := New("account", "api-key", server.Client())
-	p.client.endpoint = server.URL
+	p.client.ddnsURL = server.URL
 
 	err := p.UpdateRecord(context.Background(), provider.UpdateRequest{
 		Domain: "example.com",
@@ -49,13 +50,43 @@ func TestProviderAcceptsNoChange(t *testing.T) {
 	defer server.Close()
 
 	p := New("account", "api-key", server.Client())
-	p.client.endpoint = server.URL
+	p.client.ddnsURL = server.URL
 	if err := p.UpdateRecord(context.Background(), provider.UpdateRequest{
 		Domain: "example.com",
 		Host:   "home.example.com",
 		IP:     "198.51.100.10",
 	}); err != nil {
 		t.Fatalf("UpdateRecord() error = %v", err)
+	}
+}
+
+func TestRESTProviderFindsAndUpdatesRecord(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer api-key" {
+			t.Errorf("unexpected authorization header: %q", r.Header.Get("Authorization"))
+		}
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/dns/records/"):
+			_ = json.NewEncoder(w).Encode(dnsRecordsResponse{Records: []dnsRecord{{ID: 42, Name: "home.example.com", Type: "A", TTL: 300}}})
+		case r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/dns/records/42/"):
+			var payload dnsRecordPayload
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Errorf("decode payload: %v", err)
+			}
+			if payload.Data != "198.51.100.20" || payload.Name != "home.example.com" || payload.Type != "A" {
+				t.Errorf("unexpected payload: %+v", payload)
+			}
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	p := NewConfigured(Config{Mode: ModeREST, APIKey: "api-key", Product: "example.com", HTTPClient: server.Client()})
+	p.client.apiURL = server.URL
+	if err := p.UpdateRecord(context.Background(), provider.UpdateRequest{Domain: "example.com", Host: "home", IP: "198.51.100.20"}); err != nil {
+		t.Fatalf("REST UpdateRecord() error = %v", err)
 	}
 }
 
@@ -82,7 +113,7 @@ func TestProviderRejectsSimplyErrors(t *testing.T) {
 			defer server.Close()
 
 			p := New("account", "api-key", server.Client())
-			p.client.endpoint = server.URL
+			p.client.ddnsURL = server.URL
 			err := p.UpdateRecord(context.Background(), provider.UpdateRequest{
 				Domain: "example.com",
 				Host:   "home",
@@ -104,7 +135,7 @@ func TestProviderHonorsContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	p := New("account", "api-key", server.Client())
-	p.client.endpoint = server.URL
+	p.client.ddnsURL = server.URL
 	if err := p.UpdateRecord(ctx, provider.UpdateRequest{Domain: "example.com", Host: "home", IP: "198.51.100.10"}); err == nil {
 		t.Fatal("UpdateRecord() expected context error")
 	}
