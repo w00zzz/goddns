@@ -31,6 +31,22 @@ func (c Config) Validate() error {
 	if provider != "simply" {
 		return fmt.Errorf("dns.provider %q is not available", provider)
 	}
+	mode := strings.ToLower(strings.TrimSpace(c.DNS.Mode))
+	if mode == "" {
+		mode = "dyndns2"
+	}
+	if mode != "dyndns2" && mode != "rest" {
+		return fmt.Errorf("dns.mode must be dyndns2 or rest")
+	}
+	if mode == "rest" && strings.TrimSpace(c.DNS.Product) == "" {
+		return fmt.Errorf("dns.product is required for rest mode")
+	}
+	if c.DNS.RecordID < 0 {
+		return fmt.Errorf("dns.record_id cannot be negative")
+	}
+	if c.DNS.TTL < 0 {
+		return fmt.Errorf("dns.ttl cannot be negative")
+	}
 	if strings.TrimSpace(c.DNS.Domain) == "" {
 		return fmt.Errorf("dns.domain is required")
 	}
