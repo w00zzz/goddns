@@ -60,6 +60,7 @@ func TestLoadErrors(t *testing.T) {
 		{name: "missing required field", content: strings.Replace(validJSON, `"path": "/tmp/goddns-state.json"`, `"path": ""`, 1), want: "validate configuration"},
 		{name: "unknown field", content: strings.Replace(validJSON, `"log_level": "info"`, `"log_level": "info", "extra": true`, 1), want: "decode configuration"},
 		{name: "trailing json", content: validJSON + "{}", want: "decode configuration"},
+		{name: "malformed trailing json", content: validJSON + "{", want: "decode configuration"},
 	}
 
 	for _, tt := range tests {
