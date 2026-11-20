@@ -1,5 +1,32 @@
 package config
 
-// TODO: Crear las structs correspondientes
-// TODO: El loader debera: Abrir el archivo, deserializar el json, validar campos obligatorios, comprobar que exista al menos un fuente ip, validar el numero minimo de fuentes coincidentes, comprobar que el proveedor configurado este disponible
-// TODO: Criterios de aceptacion: puede leer el json, detecta archivos inexistentes, detecta json invalido, detecta campos obligatorios ausentes, detecta intervalos incorrectos, no imprime credenciales en los logs
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+// Load reads, decodes, and validates a JSON configuration file.
+func Load(path string) (*Config, error) {
+	if path == "" {
+		return nil, fmt.Errorf("configuration path is required")
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read configuration: %w", err)
+	}
+
+	var cfg Config
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("decode configuration: %w", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate configuration: %w", err)
+	}
+
+	return &cfg, nil
+}
