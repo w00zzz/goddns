@@ -1,0 +1,111 @@
+package simply
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/w00zzz/goddns/internal/provider"
+)
+
+func TestProviderUpdateRecord(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, password, ok := r.BasicAuth()
+		if !ok || user != "account" || password != "api-key" {
+			t.Errorf("unexpected BasicAuth: user=%q password=%q ok=%v", user, password, ok)
+		}
+		if got := r.URL.Query().Get("hostname"); got != "home.example.com" {
+			t.Errorf("hostname = %q, want home.example.com", got)
+		}
+		if got := r.URL.Query().Get("domain"); got != "example.com" {
+			t.Errorf("domain = %q, want example.com", got)
+		}
+		if got := r.URL.Query().Get("myip"); got != "198.51.100.10" {
+			t.Errorf("myip = %q, want 198.51.100.10", got)
+		}
+		_, _ = w.Write([]byte("good 198.51.100.10"))
+	}))
+	defer server.Close()
+
+	p := New("account", "api-key", server.Client())
+	p.client.endpoint = server.URL
+
+	err := p.UpdateRecord(context.Background(), provider.UpdateRequest{
+		Domain: "example.com",
+		Host:   "home",
+		IP:     "198.51.100.10",
+	})
+	if err != nil {
+		t.Fatalf("UpdateRecord() error = %v", err)
+	}
+}
+
+func TestProviderAcceptsNoChange(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("nochg 198.51.100.10"))
+	}))
+	defer server.Close()
+
+	p := New("account", "api-key", server.Client())
+	p.client.endpoint = server.URL
+	if err := p.UpdateRecord(context.Background(), provider.UpdateRequest{
+		Domain: "example.com",
+		Host:   "home.example.com",
+		IP:     "198.51.100.10",
+	}); err != nil {
+		t.Fatalf("UpdateRecord() error = %v", err)
+	}
+}
+
+func TestProviderRejectsSimplyErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		body   string
+		want   string
+	}{
+		{name: "authentication", status: http.StatusOK, body: "badauth", want: "badauth"},
+		{name: "missing host", status: http.StatusOK, body: "nohost", want: "nohost"},
+		{name: "http status", status: http.StatusBadGateway, body: "temporary failure", want: "HTTP status"},
+		{name: "empty response", status: http.StatusOK, body: "", want: "empty response"},
+		{name: "large response", status: http.StatusOK, body: strings.Repeat("x", maxResponseSize+1), want: "exceeds"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer server.Close()
+
+			p := New("account", "api-key", server.Client())
+			p.client.endpoint = server.URL
+			err := p.UpdateRecord(context.Background(), provider.UpdateRequest{
+				Domain: "example.com",
+				Host:   "home",
+				IP:     "198.51.100.10",
+			})
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("UpdateRecord() error = %v, want message containing %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestProviderHonorsContext(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	p := New("account", "api-key", server.Client())
+	p.client.endpoint = server.URL
+	if err := p.UpdateRecord(ctx, provider.UpdateRequest{Domain: "example.com", Host: "home", IP: "198.51.100.10"}); err == nil {
+		t.Fatal("UpdateRecord() expected context error")
+	}
+}
