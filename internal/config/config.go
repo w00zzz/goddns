@@ -44,8 +44,12 @@ func (c *GeneralConfig) UnmarshalJSON(data []byte) error {
 
 type DNSConfig struct {
 	Provider    string            `json:"provider"`
+	Mode        string            `json:"mode"`
 	Domain      string            `json:"domain"`
 	Host        string            `json:"host"`
+	Product     string            `json:"product"`
+	RecordID    int               `json:"record_id"`
+	TTL         int               `json:"ttl"`
 	Credentials map[string]string `json:"credentials"`
 }
 
