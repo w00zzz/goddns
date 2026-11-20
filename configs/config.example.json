@@ -1,12 +1,12 @@
 {
   "general": {
-    "interval": 10,
+    "interval": "10m",
     "log_level": "info"
   },
   "dns": {
     "provider": "simply",
     "domain": "lumiar.info",
-    "hosts": "home",
+    "host": "home",
     "credentials": {
       "account": "test",
       "api_key": "test_api_key"

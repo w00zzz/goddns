@@ -1,0 +1,35 @@
+# Configuración y secretos locales
+config.json
+configs/config.json
+*.local.json
+.env
+.env.*
+
+# Estado de la aplicación
+state.json
+*.state.json
+/var/db/goddns/
+
+# Binarios y builds
+/goddns
+/goddns.exe
+/bin/
+/dist/
+/build/
+
+# Cobertura y perfiles de Go
+coverage.out
+*.coverprofile
+*.pprof
+
+# Archivos del sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos temporales
+*.tmp
+*.temp
