@@ -140,27 +140,33 @@ Falta:
 - Decidir si `record_id` se descubre en cada actualización o se persiste.
 - Añadir verificación DNS opcional tras una actualización exitosa.
 
-### Prioridad 2 — Monitor
+### Monitor — `internal/monitor`
 
-Archivo: `internal/monitor/monitor.go`.
+Implementado:
 
-Debe implementar:
+- Comprobación inicial inmediata.
+- Carga del estado persistido.
+- Descubrimiento de IP mediante una función inyectable.
+- Comparación de IP anterior y actual.
+- Actualización DNS solo cuando la IP cambia o no existe estado.
+- Persistencia solo después de actualizar DNS correctamente.
+- Conservación del estado anterior ante errores.
+- Verificación DNS opcional mediante una función inyectable.
+- Ciclo periódico con `time.Ticker`.
+- Cancelación mediante `context.Context`.
+- Errores de comprobaciones periódicas no detienen el monitor.
 
-1. Cargar configuración y estado.
-2. Ejecutar una comprobación inmediata.
-3. Descubrir la IP por consenso.
-4. Comparar con la última IP guardada.
-5. Actualizar DNS en la primera ejecución o ante cambio.
-6. Verificar opcionalmente el DNS actualizado.
-7. Guardar estado solo después del éxito.
-8. Conservar el estado anterior cuando falle el proveedor.
-9. Reintentar en el siguiente intervalo.
-10. Usar `time.Ticker` y `context.Context`.
-11. Detenerse correctamente ante SIGINT y SIGTERM.
+Tests incluidos para primera ejecución, IP sin cambios, cambios, errores de discovery, errores del proveedor y errores de verificación.
 
-El monitor no debe importar el paquete `simply` directamente.
+Pendiente:
 
-### Prioridad 3 — CLI
+- Conectarlo con el loader, el registro de proveedores y la configuración real.
+- Añadir logging estructurado.
+- Gestionar señales desde la CLI.
+
+El monitor no importa el paquete `simply` directamente.
+
+### Prioridad 2 — CLI
 
 Archivo: `cmd/goddns/main.go`.
 
@@ -175,7 +181,7 @@ Implementar con `flag`:
 
 Recomendación: no introducir Cobra ni otras dependencias.
 
-### Prioridad 4 — Logging
+### Prioridad 3 — Logging
 
 Archivo: `internal/logger/logger.go`.
 
@@ -185,7 +191,7 @@ Implementar logger basado en `log/slog` con:
 - Formato adecuado para ejecución como servicio.
 - Ninguna API key o credencial en mensajes.
 
-### Prioridad 5 — Servicio y documentación operativa
+### Prioridad 4 — Servicio y documentación operativa
 
 Falta crear:
 
@@ -233,7 +239,7 @@ Nunca usar las credenciales de ejemplo en producción.
 
 ## Archivos y artefactos pendientes
 
-- `coverage.html` aparece como archivo no rastreado generado localmente. No es código del proyecto; decidir si eliminarlo o añadirlo al `.gitignore`.
+- `coverage.html` es un informe generado localmente y está ignorado por `.gitignore`.
 - `README.md` ya contiene documentación general, pero deberá actualizarse cuando CLI, monitor y servicio estén terminados.
 - `LICENSE` todavía no tiene contenido revisado.
 
@@ -243,4 +249,4 @@ La suite completa pasa con `CGO_ENABLED=0` y `go vet ./...` no informa errores d
 
 ## Siguiente acción recomendada
 
-Implementar `internal/monitor` conectando configuración, discovery, proveedor Simply, verificación DNS y storage. Después construir la CLI sobre el monitor.
+Conectar el monitor con el loader, el registro de proveedores y el proveedor Simply. Después implementar la CLI sobre el monitor.
