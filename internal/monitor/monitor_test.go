@@ -1,10 +1,13 @@
 package monitor
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -142,5 +145,27 @@ func TestCheckDoesNotSaveWhenVerificationFails(t *testing.T) {
 	}
 	if _, err := storage.Load(path); !errors.Is(err, storage.ErrNotFound) {
 		t.Fatalf("state error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestRunLogsInitialCheckFailure(t *testing.T) {
+	cfg := monitorConfig(filepath.Join(t.TempDir(), "state.json"))
+	cfg.General.Interval = time.Hour
+	m := NewWithDependencies(cfg, &fakeProvider{}, func(context.Context) (net.IP, error) {
+		return nil, errors.New("discovery unavailable")
+	})
+	var output bytes.Buffer
+	m.SetLogger(slog.New(slog.NewTextHandler(&output, nil)))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- m.Run(ctx) }()
+	time.Sleep(10 * time.Millisecond)
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if !strings.Contains(output.String(), "initial monitor check failed") {
+		t.Fatalf("log output = %q", output.String())
 	}
 }
