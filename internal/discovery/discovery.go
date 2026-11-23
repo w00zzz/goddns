@@ -3,8 +3,10 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"sync"
+	"time"
 )
 
 type sourceResult struct {
@@ -15,6 +17,10 @@ type sourceResult struct {
 // Discover queries all sources concurrently and returns an IP only when the
 // configured minimum number of sources agree.
 func Discover(ctx context.Context, sources []IPSource, minimumConsensus int) (net.IP, error) {
+	return DiscoverWithLogger(ctx, sources, minimumConsensus, nil)
+}
+
+func DiscoverWithLogger(ctx context.Context, sources []IPSource, minimumConsensus int, log *slog.Logger) (net.IP, error) {
 	if len(sources) == 0 {
 		return nil, fmt.Errorf("at least one IP source is required")
 	}
@@ -31,7 +37,15 @@ func Discover(ctx context.Context, sources []IPSource, minimumConsensus int) (ne
 	for _, source := range sources {
 		go func(source IPSource) {
 			defer wg.Done()
+			started := time.Now()
 			ip, err := source.GetIP(ctx)
+			if log != nil {
+				if err != nil {
+					log.Warn("IP source failed", "source", source.Name(), "error", err, "duration", time.Since(started))
+				} else {
+					log.Debug("IP source response", "source", source.Name(), "ip", ip.String(), "duration", time.Since(started))
+				}
+			}
 			results <- sourceResult{ip: ip, err: err}
 		}(source)
 	}
@@ -59,8 +73,14 @@ func Discover(ctx context.Context, sources []IPSource, minimumConsensus int) (ne
 	}
 	for ip, count := range counts {
 		if count >= minimumConsensus {
+			if log != nil {
+				log.Info("IP consensus reached", "ip", ip, "votes", count, "required", minimumConsensus)
+			}
 			return net.ParseIP(ip), nil
 		}
+	}
+	if log != nil {
+		log.Warn("IP consensus not reached", "responses", counts, "required", minimumConsensus)
 	}
 	return nil, fmt.Errorf("IP consensus not reached: minimum %d", minimumConsensus)
 }
