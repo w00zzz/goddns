@@ -52,10 +52,17 @@ type DNSConfig struct {
 	APIEndpoint  string            `json:"api_endpoint"`
 	Domain       string            `json:"domain"`
 	Host         string            `json:"host"`
+	Records      []DNSRecordConfig `json:"records"`
 	Product      string            `json:"product"`
 	RecordID     int               `json:"record_id"`
 	TTL          int               `json:"ttl"`
 	Credentials  map[string]string `json:"credentials"`
+}
+
+type DNSRecordConfig struct {
+	Domain string `json:"domain"`
+	Host   string `json:"host"`
+	Type   string `json:"type"`
 }
 
 type DiscoveryConfig struct {
