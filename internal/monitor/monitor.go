@@ -132,7 +132,7 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 		return result, errors.Join(updateErrors...)
 	}
 	if allSynced || result.Updated {
-		if state.LastIPv4 != currentIPv4.String() {
+		if result.Updated || state.LastIPv4 != currentIPv4.String() {
 			if err := state.UpdateIPv4(currentIPv4, m.now()); err != nil {
 				return result, fmt.Errorf("update state: %w", err)
 			}
