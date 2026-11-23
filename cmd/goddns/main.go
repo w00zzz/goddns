@@ -22,7 +22,7 @@ import (
 
 const (
 	version = "0.1.0-dev"
-	creator = "w00zzz"
+	creator = "lumiar.info"
 )
 
 func main() {
@@ -154,25 +154,25 @@ func printHelp(w io.Writer, command string) error {
 	var text string
 	switch command {
 	case "", "help":
-		text = fmt.Sprintf(`GoDDNS - actualizador dinámico de DNS
+		text = fmt.Sprintf(`GoDDNS - dynamic DNS updater
 
-Creador: %s
-Versión: %s
+Creator: %s
+Version: %s
 
-Uso:
-  goddns <comando> [opciones]
+Usage:
+  goddns <command> [options]
 
-Comandos:
-  run       Ejecuta el monitor en primer plano
-  check     Consulta la IP pública sin modificar DNS
-  status    Muestra el estado persistido
-  version   Muestra la versión
-  help      Muestra esta ayuda o la ayuda de un comando
+Commands:
+  run       Run the monitor in the foreground
+  check     Check the public IP without changing DNS
+  status    Show the persisted state
+  version   Show the version
+  help      Show this help or command-specific help
 
-Opciones comunes:
-  -h, --help    Muestra la ayuda
+Common options:
+  -h, --help    Show help
 
-Ejemplos:
+Examples:
   goddns check --config ./config.json
   goddns run --config /etc/goddns/config.json
   goddns status --config /var/lib/goddns/config.json
@@ -180,51 +180,51 @@ Ejemplos:
   goddns help run
 `, creator, version)
 	case "run":
-		text = `GoDDNS run - ejecuta el monitor en primer plano
+		text = `GoDDNS run - run the monitor in the foreground
 
-Uso:
+Usage:
   goddns run [--config PATH]
 
-Opciones:
-  --config PATH    Ruta al archivo JSON (por defecto: config.json)
-  -h, --help       Muestra esta ayuda
+Options:
+  --config PATH    Path to the JSON file (default: config.json)
+  -h, --help       Show help
 
-Ejemplos:
+Examples:
   goddns run
   goddns run --config /etc/goddns/config.json
 
-El proceso se mantiene en primer plano. FreeBSD/systemd deben gestionar su ciclo de vida.
+The process stays in the foreground. FreeBSD/systemd should manage its lifecycle.
 `
 	case "check":
-		text = `GoDDNS check - consulta la IP pública
+		text = `GoDDNS check - check the public IP
 
-Uso:
+Usage:
   goddns check [--config PATH]
 
-Opciones:
-  --config PATH    Ruta al archivo JSON (por defecto: config.json)
-  -h, --help       Muestra esta ayuda
+Options:
+  --config PATH    Path to the JSON file (default: config.json)
+  -h, --help       Show help
 
-Ejemplo:
+Example:
   goddns check --config ./config.json
 
-Este comando no modifica DNS.
+This command does not change DNS.
 `
 	case "status":
-		text = `GoDDNS status - muestra el estado persistido
+		text = `GoDDNS status - show the persisted state
 
-Uso:
+Usage:
   goddns status [--config PATH]
 
-Opciones:
-  --config PATH    Ruta al archivo JSON (por defecto: config.json)
-  -h, --help       Muestra esta ayuda
+Options:
+  --config PATH    Path to the JSON file (default: config.json)
+  -h, --help       Show help
 
-Ejemplo:
+Example:
   goddns status --config /etc/goddns/config.json
 `
 	case "version":
-		text = fmt.Sprintf("GoDDNS version %s\\nCreador: %s\\n", version, creator)
+		text = fmt.Sprintf("GoDDNS version %s\\nCreator: %s\\n", version, creator)
 	default:
 		return fmt.Errorf("unknown help topic %q", command)
 	}
