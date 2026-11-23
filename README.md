@@ -30,6 +30,8 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
 - CLI con `run`, `check`, `status`, `version` y `help`.
 - Ayuda general y específica por comando con opciones y ejemplos.
+- Modo `--verbose` para mostrar cada fuente, respuesta, duración y consenso.
+- Escritura opcional de logs mediante `--log-file` o `general.log_file`.
 - Logger estructurado basado en `log/slog`.
 - Compilación sin CGO y sin dependencias externas.
 
@@ -221,6 +223,39 @@ journalctl -u goddns -f
 ```
 
 Los usuarios y directorios de servicio deben crearse previamente según la distribución Linux utilizada.
+
+## Servidor de prueba Simply
+
+El proyecto incluye un servidor local para probar el comportamiento de GoDDNS sin contactar con Simply:
+
+```bash
+go run ./cmd/simply-mock \
+  --listen 127.0.0.1:18080 \
+  --account test \
+  --api-key test_api_key \
+  --ip 198.51.100.10 \
+  --record home.example.com
+```
+
+El mock implementa:
+
+- `GET /myip` para usarlo como fuente de IP.
+- `GET /nic/update` con Basic Auth y respuestas `good`, `nochg`, `badauth` y `nohost`.
+- `GET /2/my/products/{product}/dns/records/`.
+- `PUT /2/my/products/{product}/dns/records/{record_id}/` con Bearer Auth.
+
+Para probar fuentes y logs detallados:
+
+```bash
+goddns check --config ./configs/config.example.json --verbose
+
+goddns check \
+  --config ./configs/config.example.json \
+  --verbose \
+  --log-file /tmp/goddns-check.log
+```
+
+Las opciones de endpoint (`dns.ddns_endpoint` y `dns.api_endpoint`) permiten apuntar temporalmente el proveedor al servidor mock.
 
 ## Seguridad
 
