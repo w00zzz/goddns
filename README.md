@@ -159,6 +159,63 @@ goddns status --config ./config.json
 goddns version
 ```
 
+## Ejecución como servicio
+
+### FreeBSD
+
+El archivo `packaging/freebsd/goddns` es un script `rc.d`. El proceso Go permanece en primer plano y `/usr/sbin/daemon` se encarga de mantenerlo como servicio.
+
+Instalación básica:
+
+```bash
+install -d -o root -g wheel -m 0755 /usr/local/etc/goddns
+install -d -o goddns -g goddns -m 0750 /var/db/goddns
+install -m 0600 configs/config.json /usr/local/etc/goddns/config.json
+install -m 0755 goddns /usr/local/bin/goddns
+install -m 0555 packaging/freebsd/goddns /usr/local/etc/rc.d/goddns
+```
+
+El usuario `goddns` debe existir y tener permisos de escritura sobre `/var/db/goddns` y el archivo de log configurado. Después:
+
+```bash
+sysrc goddns_enable=YES
+service goddns start
+service goddns status
+service goddns stop
+```
+
+La configuración predeterminada del servicio es:
+
+```text
+/usr/local/bin/goddns
+/usr/local/etc/goddns/config.json
+/var/db/goddns/state.json
+/var/log/goddns.log
+```
+
+### Linux con systemd
+
+El archivo `packaging/linux/goddns.service` utiliza `/etc/goddns/config.json` y `/var/lib/goddns/state.json`.
+
+```bash
+install -d -o root -g root -m 0755 /etc/goddns
+install -d -o goddns -g goddns -m 0750 /var/lib/goddns
+install -m 0600 configs/config.json /etc/goddns/config.json
+install -m 0755 goddns /usr/local/bin/goddns
+install -m 0644 packaging/linux/goddns.service /etc/systemd/system/goddns.service
+systemctl daemon-reload
+systemctl enable --now goddns
+systemctl status goddns
+```
+
+Los logs se consultan con:
+
+```bash
+journalctl -u goddns -f
+```
+
+Los usuarios y directorios de servicio deben crearse previamente según la distribución Linux utilizada.
+
 ## Seguridad
 
 - No subas `configs/config.json` al repositorio.
