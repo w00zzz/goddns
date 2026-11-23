@@ -17,6 +17,7 @@ type Config struct {
 type GeneralConfig struct {
 	Interval time.Duration `json:"interval"`
 	LogLevel string        `json:"log_level"`
+	LogFile  string        `json:"log_file"`
 }
 
 // UnmarshalJSON accepts duration strings such as "10m" or "1h30m".
@@ -24,6 +25,7 @@ func (c *GeneralConfig) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		Interval string `json:"interval"`
 		LogLevel string `json:"log_level"`
+		LogFile  string `json:"log_file"`
 	}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -39,18 +41,21 @@ func (c *GeneralConfig) UnmarshalJSON(data []byte) error {
 
 	c.Interval = interval
 	c.LogLevel = raw.LogLevel
+	c.LogFile = raw.LogFile
 	return nil
 }
 
 type DNSConfig struct {
-	Provider    string            `json:"provider"`
-	Mode        string            `json:"mode"`
-	Domain      string            `json:"domain"`
-	Host        string            `json:"host"`
-	Product     string            `json:"product"`
-	RecordID    int               `json:"record_id"`
-	TTL         int               `json:"ttl"`
-	Credentials map[string]string `json:"credentials"`
+	Provider     string            `json:"provider"`
+	Mode         string            `json:"mode"`
+	DDNSEndpoint string            `json:"ddns_endpoint"`
+	APIEndpoint  string            `json:"api_endpoint"`
+	Domain       string            `json:"domain"`
+	Host         string            `json:"host"`
+	Product      string            `json:"product"`
+	RecordID     int               `json:"record_id"`
+	TTL          int               `json:"ttl"`
+	Credentials  map[string]string `json:"credentials"`
 }
 
 type DiscoveryConfig struct {
