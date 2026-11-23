@@ -192,14 +192,16 @@ Implementado con `flag`:
 
 - `goddns run --config PATH`.
 - `goddns check --config PATH`.
+- `goddns sync --config PATH`.
 - `goddns status --config PATH`.
 - `goddns version`.
 - `goddns help`.
 - `goddns <comando> --help`.
 - `goddns check --verbose`.
+- `goddns sync --verbose`.
 - `goddns run --verbose --log-file PATH`.
 
-La ayuda muestra nombre, creador, versión, opciones y ejemplos. `run` ejecuta el monitor en primer plano y captura SIGINT/SIGTERM. `check` solo descubre y muestra la IP; no actualiza DNS. `status` devuelve el estado JSON persistido.
+La ayuda muestra nombre, creador, versión, opciones y ejemplos. `run` ejecuta el monitor en primer plano y captura SIGINT/SIGTERM. `check` solo descubre y muestra la IP; `sync` actualiza una vez y termina; `status` devuelve el estado JSON persistido.
 
 Pendiente:
 
