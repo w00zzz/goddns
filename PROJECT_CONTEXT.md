@@ -130,15 +130,19 @@ El estado mínimo esperado es:
 }
 ```
 
-### Prioridad 1 — Integración del proveedor
+### Integración del proveedor — completada parcialmente
 
-Falta:
+Implementado en `cmd/goddns/main.go`:
 
-- Crear el proveedor Simply a partir de `config.Config`.
-- Registrar el proveedor en `provider.Registry` según `dns.provider`.
-- Transferir correctamente modo, API key, cuenta, producto, record ID y TTL.
-- Decidir si `record_id` se descubre en cada actualización o se persiste.
-- Añadir verificación DNS opcional tras una actualización exitosa.
+- Carga del proveedor Simply a partir de `config.Config`.
+- Registro y selección mediante `provider.Registry`.
+- Transferencia de modo, API key, cuenta, producto, record ID y TTL.
+- El modo REST descubre el registro cuando `record_id` es `0`.
+
+Pendiente:
+
+- Decidir si el `record_id` descubierto debe persistirse.
+- Añadir una opción de configuración para activar la espera de verificación DNS.
 
 ### Monitor — `internal/monitor`
 
@@ -160,38 +164,39 @@ Tests incluidos para primera ejecución, IP sin cambios, cambios, errores de dis
 
 Pendiente:
 
-- Conectarlo con el loader, el registro de proveedores y la configuración real.
-- Añadir logging estructurado.
-- Gestionar señales desde la CLI.
+- Integrar logs detallados de cada comprobación y error.
+- Añadir una opción para activar la espera de verificación DNS.
 
 El monitor no importa el paquete `simply` directamente.
 
-### Prioridad 2 — CLI
+### CLI — `cmd/goddns`
 
-Archivo: `cmd/goddns/main.go`.
-
-Actualmente solo contiene un `main()` vacío.
-
-Implementar con `flag`:
+Implementado con `flag`:
 
 - `goddns run --config PATH`.
 - `goddns check --config PATH`.
 - `goddns status --config PATH`.
 - `goddns version`.
 
-Recomendación: no introducir Cobra ni otras dependencias.
+`run` ejecuta el monitor en primer plano y captura SIGINT/SIGTERM. `check` solo descubre y muestra la IP; no actualiza DNS. `status` devuelve el estado JSON persistido.
 
-### Prioridad 3 — Logging
+Pendiente:
 
-Archivo: `internal/logger/logger.go`.
+- Mejorar mensajes de error y salida operativa.
+- Añadir pruebas de integración de comandos reales.
 
-Implementar logger basado en `log/slog` con:
+No introducir Cobra ni otras dependencias.
 
-- Niveles `debug`, `info`, `warn`, `error`.
-- Formato adecuado para ejecución como servicio.
-- Ninguna API key o credencial en mensajes.
+### Logging — `internal/logger`
 
-### Prioridad 4 — Servicio y documentación operativa
+Implementado con `log/slog` y niveles `debug`, `info`, `warn` y `error`.
+
+Pendiente:
+
+- Integrar logs detallados de cada comprobación y error del monitor.
+- Revisar formato final para FreeBSD.
+
+### Prioridad 3 — Servicio y documentación operativa
 
 Falta crear:
 
@@ -200,7 +205,7 @@ Falta crear:
 - Instalación en `/usr/local/bin/goddns`.
 - Configuración en `/usr/local/etc/goddns/config.json`.
 - Estado en `/var/db/goddns/`.
-- README con instalación real una vez terminada la CLI.
+- Revisar README con instalación real y rutas finales de FreeBSD.
 
 ## Comandos de verificación
 
@@ -240,7 +245,7 @@ Nunca usar las credenciales de ejemplo en producción.
 ## Archivos y artefactos pendientes
 
 - `coverage.html` es un informe generado localmente y está ignorado por `.gitignore`.
-- `README.md` ya contiene documentación general, pero deberá actualizarse cuando CLI, monitor y servicio estén terminados.
+- `README.md` contiene documentación general; deberá revisarse con las rutas finales del servicio.
 - `LICENSE` todavía no tiene contenido revisado.
 
 ## Última validación conocida
@@ -249,4 +254,4 @@ La suite completa pasa con `CGO_ENABLED=0` y `go vet ./...` no informa errores d
 
 ## Siguiente acción recomendada
 
-Conectar el monitor con el loader, el registro de proveedores y el proveedor Simply. Después implementar la CLI sobre el monitor.
+Implementar los scripts de servicio FreeBSD/Linux y realizar una prueba de integración real con Simply y una zona DNS controlada.
