@@ -15,8 +15,14 @@ import (
 var ErrNotFound = errors.New("state file not found")
 
 type State struct {
+	LastIPv4   string                 `json:"last_ipv4"`
+	LastIPv6   string                 `json:"last_ipv6"`
+	LastUpdate string                 `json:"last_update"`
+	Records    map[string]RecordState `json:"records,omitempty"`
+}
+
+type RecordState struct {
 	LastIPv4   string `json:"last_ipv4"`
-	LastIPv6   string `json:"last_ipv6"`
 	LastUpdate string `json:"last_update"`
 }
 
@@ -68,6 +74,48 @@ func (s State) Validate() error {
 		if _, err := time.Parse(time.RFC3339Nano, s.LastUpdate); err != nil {
 			return fmt.Errorf("last_update is not a valid RFC3339 timestamp")
 		}
+	}
+	for key, record := range s.Records {
+		if key == "" {
+			return fmt.Errorf("record state key cannot be empty")
+		}
+		if record.LastIPv4 != "" {
+			ip := net.ParseIP(record.LastIPv4)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("record %q has invalid last_ipv4", key)
+			}
+		}
+		if record.LastUpdate != "" {
+			if _, err := time.Parse(time.RFC3339Nano, record.LastUpdate); err != nil {
+				return fmt.Errorf("record %q has invalid last_update", key)
+			}
+		}
+	}
+	return nil
+}
+
+func RecordKey(provider, domain, host, recordType string) string {
+	return provider + "|" + domain + "|" + host + "|" + recordType
+}
+
+func (s State) RecordSynced(key, ip string) bool {
+	record, ok := s.Records[key]
+	return ok && record.LastIPv4 == ip
+}
+
+func (s *State) UpdateRecord(key string, ip net.IP, now time.Time) error {
+	if key == "" {
+		return fmt.Errorf("record state key is required")
+	}
+	if ip == nil || ip.To4() == nil {
+		return fmt.Errorf("IP is not a valid IPv4 address")
+	}
+	if s.Records == nil {
+		s.Records = make(map[string]RecordState)
+	}
+	s.Records[key] = RecordState{
+		LastIPv4:   ip.To4().String(),
+		LastUpdate: now.UTC().Format(time.RFC3339Nano),
 	}
 	return nil
 }
