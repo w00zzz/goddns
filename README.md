@@ -30,7 +30,7 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
 - Validación de estado, recuperación tras reinicio y protección de permisos.
 - Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
-- CLI con `run`, `check`, `status`, `version` y `help`.
+- CLI con `run`, `check`, `sync`, `status`, `version` y `help`.
 - Ayuda general y específica por comando con opciones y ejemplos.
 - Modo `--verbose` para mostrar cada fuente, respuesta, duración y consenso.
 - Escritura opcional de logs mediante `--log-file` o `general.log_file`.
@@ -147,7 +147,7 @@ La API REST realiza una actualización completa del registro, por lo que el regi
 
 ## Uso actual
 
-La CLI ya está conectada al flujo principal. `check` consulta la IP pública sin modificar DNS; `run` inicia el monitor en primer plano; `status` muestra el estado persistido.
+La CLI ya está conectada al flujo principal. `check` consulta la IP pública sin modificar DNS; `sync` actualiza una vez y sale; `run` inicia el monitor en primer plano; `status` muestra el estado persistido.
 
 Para ejecutar los tests:
 
@@ -168,6 +168,7 @@ Las comprobaciones reales dependen de Internet y de credenciales válidas de Sim
 
 ```bash
 goddns run --config /etc/goddns/config.json
+goddns sync --config ./config.json
 goddns check --config ./config.json
 goddns status --config ./config.json
 goddns version
