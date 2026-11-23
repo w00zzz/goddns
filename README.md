@@ -1,6 +1,6 @@
 # GoDDNS
 
-GoDDNS es una herramienta multiplataforma escrita en Go para detectar cambios en la IPv4 pública de un equipo y actualizar automáticamente un registro DNS en Simply.com.
+GoDDNS es una herramienta multiplataforma escrita en Go para detectar cambios en la IPv4 pública de un equipo y actualizar automáticamente uno o varios registros DNS en Simply.com.
 
 El objetivo final es poder ejecutar GoDDNS como una aplicación puntual o como un proceso residente en FreeBSD, manteniendo sincronizado un registro DNS sin intervención manual.
 
@@ -23,6 +23,8 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Integración Simply mediante DynDNS2.
 - Integración Simply mediante API REST de DNS.
 - Búsqueda automática del registro `A` en modo REST cuando `record_id` es `0`.
+- Actualización de múltiples registros en una sola ejecución.
+- Estado individual por registro para reintentar solo los registros fallidos.
 - Tests con `httptest` para fuentes HTTP y Simply.
 - Verificación DNS mediante `net.Resolver` en `internal/dnscheck`.
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
@@ -90,6 +92,10 @@ Ejemplo:
     "mode": "dyndns2",
     "domain": "example.com",
     "host": "home",
+    "records": [
+      {"host": "@", "type": "A"},
+      {"host": "*", "type": "A"}
+    ],
     "product": "example.com",
     "record_id": 0,
     "ttl": 3600,
@@ -136,6 +142,8 @@ Utiliza `https://ddns.simply.com/nic/update` con autenticación Basic. Las respu
 Utiliza `https://api.simply.com/2/` con autenticación Bearer mediante la API key. `product` identifica la zona/producto. Si `record_id` es `0`, GoDDNS consulta los registros y busca el registro `A` correspondiente al hostname.
 
 La API REST realiza una actualización completa del registro, por lo que el registro debe existir y debe ser de tipo `A`.
+
+`records` es opcional para mantener compatibilidad con la configuración de un solo registro. Cuando se utiliza, cada registro se actualiza por separado y su estado se persiste individualmente. Si uno falla, los demás pueden completarse y solo el registro fallido se reintenta en el siguiente ciclo.
 
 ## Uso actual
 
