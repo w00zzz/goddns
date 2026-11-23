@@ -15,7 +15,7 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Rechazo de campos desconocidos y JSON adicional.
 - Validación de proveedor, modo DNS, credenciales, fuentes y consenso.
 - Descubrimiento concurrente de IPv4 mediante fuentes HTTP.
-- Fuentes configurables como ipify, icanhazip e ifconfig.me.
+- Fuentes configurables como ipify, icanhazip, ifconfig.me, Amazon AWS, ipinfo.io e ident.me.
 - Timeout HTTP, cancelación por contexto y límite de tamaño de respuestas.
 - Validación de IP y consenso mínimo entre fuentes.
 - Interfaz `DNSProvider` independiente del monitor.
@@ -102,9 +102,12 @@ Ejemplo:
     "sources": [
       "https://api.ipify.org",
       "https://icanhazip.com",
-      "https://ifconfig.me/ip"
+      "https://ifconfig.me/ip",
+      "https://checkip.amazonaws.com",
+      "https://ipinfo.io/ip",
+      "https://ident.me"
     ],
-    "min_consensus": 2
+    "min_consensus": 3
   },
   "state": {
     "path": "/var/db/goddns/state.json"
