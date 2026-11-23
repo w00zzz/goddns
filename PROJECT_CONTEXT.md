@@ -243,8 +243,8 @@ go tool cover -html=coverage.out -o coverage.html
 - Dominio `lumiar.info`.
 - Host `home`.
 - Producto configurado para permitir cambiar a REST.
-- Tres fuentes IPv4.
-- Consenso mínimo de 2.
+- Seis fuentes IPv4.
+- Consenso mínimo de 3.
 - Estado en `/var/db/goddns/state.json`.
 
 Nunca usar las credenciales de ejemplo en producción.
