@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/w00zzz/goddns/internal/config"
@@ -40,21 +41,11 @@ func New(cfg config.Config, dnsProvider provider.DNSProvider, sources []discover
 }
 
 func NewWithDependencies(cfg config.Config, dnsProvider provider.DNSProvider, discover DiscoverFunc) *Monitor {
-	return &Monitor{
-		config:   cfg,
-		provider: dnsProvider,
-		discover: discover,
-		now:      time.Now,
-	}
+	return &Monitor{config: cfg, provider: dnsProvider, discover: discover, now: time.Now}
 }
 
-func (m *Monitor) SetLogger(log *slog.Logger) {
-	m.log = log
-}
-
-func (m *Monitor) SetVerifier(verify VerifyFunc) {
-	m.verify = verify
-}
+func (m *Monitor) SetLogger(log *slog.Logger)    { m.log = log }
+func (m *Monitor) SetVerifier(verify VerifyFunc) { m.verify = verify }
 
 func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 	if m.provider == nil {
@@ -87,49 +78,86 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 	if state.LastIPv4 != "" {
 		result.PreviousIP = net.ParseIP(state.LastIPv4).To4()
 	}
-	result.Changed = result.PreviousIP == nil || !result.PreviousIP.Equal(currentIPv4)
-	if !result.Changed {
-		if m.log != nil {
-			m.log.Info("IP unchanged", "ip", currentIPv4.String())
+	targets := configuredRecords(m.config)
+	var updateErrors []error
+	allSynced := true
+	for _, target := range targets {
+		key := storage.RecordKey(m.provider.Name(), target.Domain, target.Host, target.Type)
+		if state.RecordSynced(key, currentIPv4.String()) {
+			if m.log != nil {
+				m.log.Info("DNS record unchanged", "domain", target.Domain, "host", target.Host, "ip", currentIPv4.String())
+			}
+			continue
 		}
-		return result, nil
-	}
-	if m.log != nil {
-		m.log.Info("IP changed", "previous", result.PreviousIP, "current", currentIPv4.String())
+
+		result.Changed = true
+		allSynced = false
+		req := provider.UpdateRequest{Domain: target.Domain, Host: target.Host, Type: target.Type, IP: currentIPv4.String()}
+		if m.log != nil {
+			m.log.Info("updating DNS record", "provider", m.provider.Name(), "domain", target.Domain, "host", target.Host, "type", target.Type)
+		}
+		if err := m.provider.UpdateRecord(ctx, req); err != nil {
+			if m.log != nil {
+				m.log.Error("DNS update failed", "domain", target.Domain, "host", target.Host, "error", err)
+			}
+			updateErrors = append(updateErrors, fmt.Errorf("%s/%s: %w", target.Domain, target.Host, err))
+			continue
+		}
+		if m.verify != nil {
+			hostname := qualifiedHostname(target.Domain, target.Host)
+			if err := m.verify(ctx, hostname, currentIPv4); err != nil {
+				updateErrors = append(updateErrors, fmt.Errorf("verify %s: %w", hostname, err))
+				continue
+			}
+		}
+		if err := state.UpdateRecord(key, currentIPv4, m.now()); err != nil {
+			updateErrors = append(updateErrors, fmt.Errorf("record state %s/%s: %w", target.Domain, target.Host, err))
+			continue
+		}
+		if err := storage.Save(m.config.State.Path, state); err != nil {
+			updateErrors = append(updateErrors, fmt.Errorf("save state after %s/%s: %w", target.Domain, target.Host, err))
+			continue
+		}
+		result.Updated = true
+		if m.log != nil {
+			m.log.Info("DNS update successful", "domain", target.Domain, "host", target.Host, "ip", currentIPv4.String())
+		}
 	}
 
-	req := provider.UpdateRequest{
-		Domain: m.config.DNS.Domain,
-		Host:   m.config.DNS.Host,
-		IP:     currentIPv4.String(),
+	if len(updateErrors) > 0 {
+		return result, errors.Join(updateErrors...)
 	}
-	if m.log != nil {
-		m.log.Info("updating DNS record", "provider", m.provider.Name())
-	}
-	if err := m.provider.UpdateRecord(ctx, req); err != nil {
-		if m.log != nil {
-			m.log.Error("DNS update failed", "error", err)
-		}
-		return result, fmt.Errorf("update DNS record: %w", err)
-	}
-	if m.verify != nil {
-		hostname := qualifiedHostname(req.Domain, req.Host)
-		if err := m.verify(ctx, hostname, currentIPv4); err != nil {
-			return result, fmt.Errorf("verify DNS record: %w", err)
+	if allSynced || result.Updated {
+		if state.LastIPv4 != currentIPv4.String() {
+			if err := state.UpdateIPv4(currentIPv4, m.now()); err != nil {
+				return result, fmt.Errorf("update state: %w", err)
+			}
+			if err := storage.Save(m.config.State.Path, state); err != nil {
+				return result, fmt.Errorf("save state: %w", err)
+			}
 		}
 	}
-
-	if err := state.UpdateIPv4(currentIPv4, m.now()); err != nil {
-		return result, fmt.Errorf("update state: %w", err)
-	}
-	if err := storage.Save(m.config.State.Path, state); err != nil {
-		return result, fmt.Errorf("save state: %w", err)
-	}
-	result.Updated = true
-	if m.log != nil {
-		m.log.Info("DNS update successful", "ip", currentIPv4.String())
+	if !result.Changed && m.log != nil {
+		m.log.Info("IP unchanged", "ip", currentIPv4.String())
 	}
 	return result, nil
+}
+
+func configuredRecords(cfg config.Config) []config.DNSRecordConfig {
+	if len(cfg.DNS.Records) > 0 {
+		records := make([]config.DNSRecordConfig, len(cfg.DNS.Records))
+		copy(records, cfg.DNS.Records)
+		for i := range records {
+			if records[i].Domain == "" {
+				records[i].Domain = cfg.DNS.Domain
+			}
+			if records[i].Type == "" {
+				records[i].Type = "A"
+			}
+		}
+		return records
+	}
+	return []config.DNSRecordConfig{{Domain: cfg.DNS.Domain, Host: cfg.DNS.Host, Type: "A"}}
 }
 
 func (m *Monitor) Run(ctx context.Context) error {
@@ -152,8 +180,6 @@ func (m *Monitor) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			// A failed check is intentionally not fatal. The previous state is
-			// preserved and the next tick retries the operation.
 			if _, err := m.Check(ctx); err != nil && m.log != nil {
 				m.log.Error("monitor check failed", "error", err)
 			}
@@ -162,8 +188,11 @@ func (m *Monitor) Run(ctx context.Context) error {
 }
 
 func qualifiedHostname(domain, host string) string {
-	if host == "@" || host == "" || host == domain {
+	if host == "@" || host == "" || strings.EqualFold(host, domain) {
 		return domain
+	}
+	if strings.HasSuffix(strings.ToLower(host), "."+strings.ToLower(domain)) {
+		return host
 	}
 	return host + "." + domain
 }
