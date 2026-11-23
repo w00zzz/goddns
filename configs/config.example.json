@@ -22,9 +22,12 @@
     "sources": [
       "https://api.ipify.org",
       "https://icanhazip.com",
-      "https://ifconfig.me/ip"
+      "https://ifconfig.me/ip",
+      "https://checkip.amazonaws.com",
+      "https://ipinfo.io/ip",
+      "https://ident.me"
     ],
-    "min_consensus": 2
+    "min_consensus": 3
   },
   "state": {
     "path": "/var/db/goddns/state.json"
