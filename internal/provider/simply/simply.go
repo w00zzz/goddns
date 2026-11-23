@@ -24,5 +24,5 @@ func (p *Provider) Name() string {
 }
 
 func (p *Provider) UpdateRecord(ctx context.Context, req provider.UpdateRequest) error {
-	return p.client.update(ctx, req.Domain, req.Host, req.IP)
+	return p.client.update(ctx, req.Domain, req.Host, req.Type, req.IP)
 }
