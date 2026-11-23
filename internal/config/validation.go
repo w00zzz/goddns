@@ -62,8 +62,31 @@ func (c Config) Validate() error {
 	if strings.TrimSpace(c.DNS.Domain) == "" {
 		return fmt.Errorf("dns.domain is required")
 	}
-	if strings.TrimSpace(c.DNS.Host) == "" {
+	if len(c.DNS.Records) == 0 && strings.TrimSpace(c.DNS.Host) == "" {
 		return fmt.Errorf("dns.host is required")
+	}
+	seenRecords := make(map[string]struct{}, len(c.DNS.Records))
+	for i, record := range c.DNS.Records {
+		domain := strings.TrimSpace(record.Domain)
+		if domain == "" {
+			domain = strings.TrimSpace(c.DNS.Domain)
+		}
+		host := strings.TrimSpace(record.Host)
+		recordType := strings.ToUpper(strings.TrimSpace(record.Type))
+		if recordType == "" {
+			recordType = "A"
+		}
+		if domain == "" || host == "" {
+			return fmt.Errorf("dns.records[%d] requires domain and host", i)
+		}
+		if recordType != "A" {
+			return fmt.Errorf("dns.records[%d].type must be A", i)
+		}
+		key := provider + "|" + domain + "|" + host + "|" + recordType
+		if _, exists := seenRecords[key]; exists {
+			return fmt.Errorf("dns.records[%d] is duplicated", i)
+		}
+		seenRecords[key] = struct{}{}
 	}
 	if strings.TrimSpace(c.DNS.Credentials["account"]) == "" {
 		return fmt.Errorf("dns.credentials.account is required")
