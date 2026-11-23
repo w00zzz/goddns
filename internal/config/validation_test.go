@@ -54,6 +54,19 @@ func TestConfigValidateRequiresIPVersion(t *testing.T) {
 	}
 }
 
+func TestConfigValidateRecords(t *testing.T) {
+	cfg := validConfig()
+	cfg.DNS.Records = []DNSRecordConfig{{Host: "@", Type: "A"}, {Host: "*", Type: "A"}}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("valid records rejected: %v", err)
+	}
+
+	cfg.DNS.Records = []DNSRecordConfig{{Host: "@", Type: "A"}, {Host: "@", Type: "A"}}
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "duplicated") {
+		t.Fatalf("duplicate records error = %v", err)
+	}
+}
+
 func TestConfigValidateRejectsInvalidValues(t *testing.T) {
 	tests := []struct {
 		name   string
