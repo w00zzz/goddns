@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"time"
 
@@ -29,6 +30,7 @@ type Monitor struct {
 	discover DiscoverFunc
 	verify   VerifyFunc
 	now      func() time.Time
+	log      *slog.Logger
 }
 
 func New(cfg config.Config, dnsProvider provider.DNSProvider, sources []discovery.IPSource) *Monitor {
@@ -44,6 +46,10 @@ func NewWithDependencies(cfg config.Config, dnsProvider provider.DNSProvider, di
 		discover: discover,
 		now:      time.Now,
 	}
+}
+
+func (m *Monitor) SetLogger(log *slog.Logger) {
+	m.log = log
 }
 
 func (m *Monitor) SetVerifier(verify VerifyFunc) {
@@ -65,6 +71,9 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
 		return CheckResult{}, fmt.Errorf("load state: %w", err)
 	}
+	if m.log != nil {
+		m.log.Info("checking public IP")
+	}
 	currentIP, err := m.discover(ctx)
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("discover public IP: %w", err)
@@ -80,7 +89,13 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 	}
 	result.Changed = result.PreviousIP == nil || !result.PreviousIP.Equal(currentIPv4)
 	if !result.Changed {
+		if m.log != nil {
+			m.log.Info("IP unchanged", "ip", currentIPv4.String())
+		}
 		return result, nil
+	}
+	if m.log != nil {
+		m.log.Info("IP changed", "previous", result.PreviousIP, "current", currentIPv4.String())
 	}
 
 	req := provider.UpdateRequest{
@@ -88,7 +103,13 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 		Host:   m.config.DNS.Host,
 		IP:     currentIPv4.String(),
 	}
+	if m.log != nil {
+		m.log.Info("updating DNS record", "provider", m.provider.Name())
+	}
 	if err := m.provider.UpdateRecord(ctx, req); err != nil {
+		if m.log != nil {
+			m.log.Error("DNS update failed", "error", err)
+		}
 		return result, fmt.Errorf("update DNS record: %w", err)
 	}
 	if m.verify != nil {
@@ -105,6 +126,9 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 		return result, fmt.Errorf("save state: %w", err)
 	}
 	result.Updated = true
+	if m.log != nil {
+		m.log.Info("DNS update successful", "ip", currentIPv4.String())
+	}
 	return result, nil
 }
 
@@ -125,7 +149,9 @@ func (m *Monitor) Run(ctx context.Context) error {
 		case <-ticker.C:
 			// A failed check is intentionally not fatal. The previous state is
 			// preserved and the next tick retries the operation.
-			_, _ = m.Check(ctx)
+			if _, err := m.Check(ctx); err != nil && m.log != nil {
+				m.log.Error("monitor check failed", "error", err)
+			}
 		}
 	}
 }
