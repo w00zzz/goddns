@@ -28,7 +28,8 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
 - Validación de estado, recuperación tras reinicio y protección de permisos.
 - Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
-- CLI con `run`, `check`, `status` y `version`.
+- CLI con `run`, `check`, `status`, `version` y `help`.
+- Ayuda general y específica por comando con opciones y ejemplos.
 - Logger estructurado basado en `log/slog`.
 - Compilación sin CGO y sin dependencias externas.
 
@@ -157,6 +158,8 @@ goddns run --config /etc/goddns/config.json
 goddns check --config ./config.json
 goddns status --config ./config.json
 goddns version
+goddns help
+goddns run --help
 ```
 
 ## Ejecución como servicio
