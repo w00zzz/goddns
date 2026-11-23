@@ -47,6 +47,18 @@ func (c Config) Validate() error {
 	if c.DNS.TTL < 0 {
 		return fmt.Errorf("dns.ttl cannot be negative")
 	}
+	for field, endpoint := range map[string]string{
+		"dns.ddns_endpoint": c.DNS.DDNSEndpoint,
+		"dns.api_endpoint":  c.DNS.APIEndpoint,
+	} {
+		if strings.TrimSpace(endpoint) == "" {
+			continue
+		}
+		u, err := url.ParseRequestURI(endpoint)
+		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+			return fmt.Errorf("%s must be a valid HTTP or HTTPS URL", field)
+		}
+	}
 	if strings.TrimSpace(c.DNS.Domain) == "" {
 		return fmt.Errorf("dns.domain is required")
 	}
