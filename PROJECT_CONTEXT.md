@@ -35,7 +35,8 @@ Implementado:
 - Rechazo de campos desconocidos.
 - Rechazo de múltiples valores JSON o JSON adicional.
 - `Config.Validate()`.
-- Validación de intervalo, nivel de log, proveedor, modo, dominio, host, credenciales, fuentes, consenso y ruta de estado.
+- Configuración opcional de múltiples registros DNS mediante `dns.records`.
+- Validación de intervalo, nivel de log, proveedor, modo, dominio, host, registros, credenciales, fuentes, consenso y ruta de estado.
 - Modos admitidos: `dyndns2` y `rest`.
 - En modo REST se exige `dns.product`.
 
@@ -70,7 +71,8 @@ Tests:
 Implementado:
 
 - `DNSProvider`.
-- `UpdateRequest` con dominio, host e IP.
+- `UpdateRequest` con dominio, host, tipo e IP.
+- Compatibilidad con uno o varios registros DNS.
 - `Registry` con registro y búsqueda por nombre.
 - Tests del registro.
 
@@ -120,6 +122,7 @@ Implementado:
 - Rechazo de JSON inválido, campos desconocidos, JSON adicional y estados inválidos.
 - Validación de IPv4, IPv6 y timestamp RFC3339.
 - `State.UpdateIPv4` con timestamp UTC.
+- Estado individual por registro mediante `RecordKey`, `RecordSynced` y `UpdateRecord`.
 - Tests de lectura, escritura, reemplazo, corrupción, permisos y preservación del estado anterior.
 
 El estado mínimo esperado es:
@@ -165,15 +168,17 @@ Implementado:
 - Carga del estado persistido.
 - Descubrimiento de IP mediante una función inyectable.
 - Comparación de IP anterior y actual.
-- Actualización DNS solo cuando la IP cambia o no existe estado.
-- Persistencia solo después de actualizar DNS correctamente.
+- Actualización DNS solo cuando el registro necesita sincronizarse.
+- Actualización de múltiples registros en una sola ejecución.
+- Persistencia individual después de cada registro exitoso.
 - Conservación del estado anterior ante errores.
+- Reintento únicamente de registros que no quedaron sincronizados.
 - Verificación DNS opcional mediante una función inyectable.
 - Ciclo periódico con `time.Ticker`.
 - Cancelación mediante `context.Context`.
 - Errores de comprobaciones periódicas no detienen el monitor.
 
-Tests incluidos para primera ejecución, IP sin cambios, cambios, errores de discovery, errores del proveedor y errores de verificación.
+Tests incluidos para primera ejecución, IP sin cambios, cambios, múltiples registros, actualización parcial, errores de discovery, errores del proveedor y errores de verificación.
 
 Pendiente:
 
