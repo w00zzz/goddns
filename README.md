@@ -25,11 +25,12 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Búsqueda automática del registro `A` en modo REST cuando `record_id` es `0`.
 - Tests con `httptest` para fuentes HTTP y Simply.
 - Verificación DNS mediante `net.Resolver` en `internal/dnscheck`.
+- Persistencia de estado JSON con escritura atómica y sincronización a disco.
+- Validación de estado, recuperación tras reinicio y protección de permisos.
 - Compilación sin CGO y sin dependencias externas.
 
 ### Pendiente
 
-- Implementar la persistencia de estado con escritura atómica.
 - Implementar el monitor y el ciclo periódico con `time.Ticker`.
 - Integrar discovery, proveedor, verificación DNS y almacenamiento.
 - Integrar la configuración con el registro de proveedores.
@@ -62,7 +63,7 @@ internal/discovery/         Fuentes HTTP y consenso de IP
 internal/provider/          Interfaz y registro de proveedores
 internal/provider/simply/   DynDNS2 y API REST de Simply
 internal/dnscheck/          Verificación de resolución DNS
-internal/storage/           Modelo de estado, pendiente de implementación
+internal/storage/           Persistencia atómica del estado
 internal/monitor/           Monitor, pendiente de implementación
 internal/logger/            Logger, pendiente de implementación
 ```
