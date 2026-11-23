@@ -26,13 +26,15 @@ const (
 )
 
 type Config struct {
-	Mode       Mode
-	Account    string
-	APIKey     string
-	Product    string
-	RecordID   int
-	TTL        int
-	HTTPClient *http.Client
+	Mode         Mode
+	Account      string
+	APIKey       string
+	Product      string
+	RecordID     int
+	TTL          int
+	HTTPClient   *http.Client
+	DDNSEndpoint string
+	APIEndpoint  string
 }
 
 type Client struct {
@@ -59,6 +61,13 @@ func newClient(cfg Config) *Client {
 	if mode == "" {
 		mode = ModeDynDNS2
 	}
+	ddnsURL, apiURL := defaultDDNSEndpoint, defaultAPIEndpoint
+	if cfg.DDNSEndpoint != "" {
+		ddnsURL = cfg.DDNSEndpoint
+	}
+	if cfg.APIEndpoint != "" {
+		apiURL = cfg.APIEndpoint
+	}
 	return &Client{
 		httpClient: cfg.HTTPClient,
 		account:    cfg.Account,
@@ -67,8 +76,8 @@ func newClient(cfg Config) *Client {
 		product:    cfg.Product,
 		recordID:   cfg.RecordID,
 		ttl:        cfg.TTL,
-		ddnsURL:    defaultDDNSEndpoint,
-		apiURL:     defaultAPIEndpoint,
+		ddnsURL:    ddnsURL,
+		apiURL:     apiURL,
 	}
 }
 
