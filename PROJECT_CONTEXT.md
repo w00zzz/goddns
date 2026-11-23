@@ -107,19 +107,18 @@ Limitación: utiliza el resolver configurado en el sistema. No consulta directam
 
 ## Estado pendiente
 
-### Prioridad 1 — Persistencia
+### Persistencia — `internal/storage`
 
-Archivo principal: `internal/storage/state.go`.
+Implementado:
 
-Falta implementar:
-
-- `Load` del estado.
-- `Save` del estado.
-- Escritura atómica mediante archivo temporal, `Sync` y `Rename`.
-- Manejo de archivo inexistente.
-- Validación de IP y fecha.
-- Evitar escrituras concurrentes.
-- Tests de lectura, corrupción, permisos e interrupciones.
+- `Load(path)` con `ErrNotFound` para archivos inexistentes.
+- `Save(path, state)` con creación de directorio.
+- Escritura atómica mediante archivo temporal, `Sync`, `Rename` y sincronización del directorio.
+- Permisos restrictivos `0600` para el archivo y `0750` para el directorio.
+- Rechazo de JSON inválido, campos desconocidos, JSON adicional y estados inválidos.
+- Validación de IPv4, IPv6 y timestamp RFC3339.
+- `State.UpdateIPv4` con timestamp UTC.
+- Tests de lectura, escritura, reemplazo, corrupción, permisos y preservación del estado anterior.
 
 El estado mínimo esperado es:
 
@@ -131,7 +130,7 @@ El estado mínimo esperado es:
 }
 ```
 
-### Prioridad 2 — Integración del proveedor
+### Prioridad 1 — Integración del proveedor
 
 Falta:
 
@@ -141,7 +140,7 @@ Falta:
 - Decidir si `record_id` se descubre en cada actualización o se persiste.
 - Añadir verificación DNS opcional tras una actualización exitosa.
 
-### Prioridad 3 — Monitor
+### Prioridad 2 — Monitor
 
 Archivo: `internal/monitor/monitor.go`.
 
@@ -161,7 +160,7 @@ Debe implementar:
 
 El monitor no debe importar el paquete `simply` directamente.
 
-### Prioridad 4 — CLI
+### Prioridad 3 — CLI
 
 Archivo: `cmd/goddns/main.go`.
 
@@ -176,7 +175,7 @@ Implementar con `flag`:
 
 Recomendación: no introducir Cobra ni otras dependencias.
 
-### Prioridad 5 — Logging
+### Prioridad 4 — Logging
 
 Archivo: `internal/logger/logger.go`.
 
@@ -186,7 +185,7 @@ Implementar logger basado en `log/slog` con:
 - Formato adecuado para ejecución como servicio.
 - Ninguna API key o credencial en mensajes.
 
-### Prioridad 6 — Servicio y documentación operativa
+### Prioridad 5 — Servicio y documentación operativa
 
 Falta crear:
 
@@ -244,4 +243,4 @@ La suite completa pasa con `CGO_ENABLED=0` y `go vet ./...` no informa errores d
 
 ## Siguiente acción recomendada
 
-Implementar `internal/storage` con lectura, escritura atómica y tests. Después conectar storage, discovery y Simply dentro de `internal/monitor`, y finalmente construir la CLI sobre el monitor.
+Implementar `internal/monitor` conectando configuración, discovery, proveedor Simply, verificación DNS y storage. Después construir la CLI sobre el monitor.
