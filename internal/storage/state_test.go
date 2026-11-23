@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ func TestSaveAndLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Load() = %+v, want %+v", got, want)
 	}
 
@@ -56,7 +57,7 @@ func TestSaveReplacesExistingStateAtomically(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if got != second {
+	if !reflect.DeepEqual(got, second) {
 		t.Fatalf("Load() = %+v, want %+v", got, second)
 	}
 }
@@ -100,7 +101,7 @@ func TestSaveRejectsInvalidStateAndPreservesPreviousFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if got != valid {
+	if !reflect.DeepEqual(got, valid) {
 		t.Fatalf("previous state was not preserved: got %+v, want %+v", got, valid)
 	}
 }
