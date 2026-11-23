@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -68,6 +70,8 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", "config.json", "path to JSON configuration")
+	verbose := fs.Bool("verbose", false, "enable detailed logs")
+	logFile := fs.String("log-file", "", "write logs to this file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -75,15 +79,19 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	log, err := logger.New(cfg.General.LogLevel, stderr)
+	log, closeLog, err := newLogger(cfg.General.LogLevel, cfg.General.LogFile, *logFile, *verbose, stderr)
 	if err != nil {
 		return err
 	}
+	defer closeLog()
 	log.Info("starting GoDDNS", "version", version)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	m := monitor.New(cfg, dnsProvider, sources)
+	m := monitor.NewWithDependencies(cfg, dnsProvider, func(ctx context.Context) (net.IP, error) {
+		return discovery.DiscoverWithLogger(ctx, sources, cfg.Discovery.MinConsensus, log)
+	})
+	m.SetLogger(log)
 	if err := m.Run(ctx); err != nil {
 		return err
 	}
@@ -98,6 +106,8 @@ func checkCommand(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", "config.json", "path to JSON configuration")
+	verbose := fs.Bool("verbose", false, "enable detailed logs")
+	logFile := fs.String("log-file", "", "write logs to this file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -105,8 +115,17 @@ func checkCommand(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	var log *slog.Logger
+	var closeLog func()
+	if *verbose || *logFile != "" || cfg.General.LogFile != "" {
+		log, closeLog, err = newLogger(cfg.General.LogLevel, cfg.General.LogFile, *logFile, *verbose, stderr)
+		if err != nil {
+			return err
+		}
+		defer closeLog()
+	}
 	ctx := context.Background()
-	ip, err := discovery.Discover(ctx, sources, cfg.Discovery.MinConsensus)
+	ip, err := discovery.DiscoverWithLogger(ctx, sources, cfg.Discovery.MinConsensus, log)
 	if err != nil {
 		return fmt.Errorf("discover public IP: %w", err)
 	}
@@ -121,6 +140,7 @@ func statusCommand(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("status", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", "config.json", "path to JSON configuration")
+	verbose := fs.Bool("verbose", false, "enable detailed logs")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -136,9 +156,44 @@ func statusCommand(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 	}
+	if *verbose {
+		fmt.Fprintln(stderr, "INFO persisted state loaded")
+	}
 	encoder := json.NewEncoder(stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(state)
+}
+
+func newLogger(level, configuredPath, overridePath string, verbose bool, stderr io.Writer) (*slog.Logger, func(), error) {
+	path := overridePath
+	if path == "" {
+		path = configuredPath
+	}
+	output := stderr
+	var file *os.File
+	if path != "" {
+		var err error
+		file, err = os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return nil, func() {}, fmt.Errorf("open log file: %w", err)
+		}
+		output = file
+	}
+	if verbose {
+		level = "debug"
+	}
+	log, err := logger.New(level, output)
+	if err != nil {
+		if file != nil {
+			_ = file.Close()
+		}
+		return nil, func() {}, err
+	}
+	return log, func() {
+		if file != nil {
+			_ = file.Close()
+		}
+	}, nil
 }
 
 func hasHelpFlag(args []string) bool {
@@ -183,10 +238,12 @@ Examples:
 		text = `GoDDNS run - run the monitor in the foreground
 
 Usage:
-  goddns run [--config PATH]
+  goddns run [--config PATH] [--verbose] [--log-file PATH]
 
 Options:
   --config PATH    Path to the JSON file (default: config.json)
+  --verbose        Enable detailed source and monitor logs
+  --log-file PATH  Write logs to this file
   -h, --help       Show help
 
 Examples:
@@ -199,10 +256,12 @@ The process stays in the foreground. FreeBSD/systemd should manage its lifecycle
 		text = `GoDDNS check - check the public IP
 
 Usage:
-  goddns check [--config PATH]
+  goddns check [--config PATH] [--verbose] [--log-file PATH]
 
 Options:
   --config PATH    Path to the JSON file (default: config.json)
+  --verbose        Enable detailed source logs
+  --log-file PATH  Write logs to this file
   -h, --help       Show help
 
 Example:
@@ -214,10 +273,11 @@ This command does not change DNS.
 		text = `GoDDNS status - show the persisted state
 
 Usage:
-  goddns status [--config PATH]
+  goddns status [--config PATH] [--verbose]
 
 Options:
   --config PATH    Path to the JSON file (default: config.json)
+  --verbose        Show status log messages
   -h, --help       Show help
 
 Example:
@@ -239,12 +299,14 @@ func loadRuntime(path string) (config.Config, provider.DNSProvider, []discovery.
 	}
 	credentials := cfg.DNS.Credentials
 	dnsProvider := simply.NewConfigured(simply.Config{
-		Mode:     simply.Mode(cfg.DNS.Mode),
-		Account:  credentials["account"],
-		APIKey:   credentials["api_key"],
-		Product:  cfg.DNS.Product,
-		RecordID: cfg.DNS.RecordID,
-		TTL:      cfg.DNS.TTL,
+		Mode:         simply.Mode(cfg.DNS.Mode),
+		Account:      credentials["account"],
+		APIKey:       credentials["api_key"],
+		Product:      cfg.DNS.Product,
+		RecordID:     cfg.DNS.RecordID,
+		TTL:          cfg.DNS.TTL,
+		DDNSEndpoint: cfg.DNS.DDNSEndpoint,
+		APIEndpoint:  cfg.DNS.APIEndpoint,
 	})
 	registry := provider.NewRegistry()
 	if err := registry.Register(dnsProvider); err != nil {
