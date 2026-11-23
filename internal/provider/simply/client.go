@@ -81,9 +81,12 @@ func newClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) update(ctx context.Context, domain, host, ip string) error {
+func (c *Client) update(ctx context.Context, domain, host, recordType, ip string) error {
+	if recordType == "" {
+		recordType = "A"
+	}
 	if c.mode == ModeREST {
-		return c.updateREST(ctx, domain, host, ip)
+		return c.updateREST(ctx, domain, host, recordType, ip)
 	}
 	return c.updateDynDNS2(ctx, domain, host, ip)
 }
@@ -146,7 +149,7 @@ type dnsRecordPayload struct {
 	Comment  string `json:"comment,omitempty"`
 }
 
-func (c *Client) updateREST(ctx context.Context, domain, host, ip string) error {
+func (c *Client) updateREST(ctx context.Context, domain, host, recordType, ip string) error {
 	if c.product == "" {
 		return fmt.Errorf("Simply REST product is required")
 	}
@@ -155,13 +158,13 @@ func (c *Client) updateREST(ctx context.Context, domain, host, ip string) error 
 	var record dnsRecord
 	if recordID == 0 {
 		var err error
-		record, err = c.findARecord(ctx, domain, host)
+		record, err = c.findRecord(ctx, domain, host, recordType)
 		if err != nil {
 			return err
 		}
 		recordID = record.ID
 	} else {
-		record = dnsRecord{Name: qualifiedHostname(domain, host), Type: "A"}
+		record = dnsRecord{Name: qualifiedHostname(domain, host), Type: recordType}
 	}
 	if recordID == 0 {
 		return fmt.Errorf("Simply A record was not found")
@@ -171,7 +174,7 @@ func (c *Client) updateREST(ctx context.Context, domain, host, ip string) error 
 	if c.ttl > 0 {
 		ttl = c.ttl
 	}
-	payload := dnsRecordPayload{Type: "A", Name: record.Name, Data: ip}
+	payload := dnsRecordPayload{Type: recordType, Name: record.Name, Data: ip}
 	if ttl > 0 {
 		payload.TTL = &ttl
 	}
@@ -201,7 +204,7 @@ func (c *Client) updateREST(ctx context.Context, domain, host, ip string) error 
 	return nil
 }
 
-func (c *Client) findARecord(ctx context.Context, domain, host string) (dnsRecord, error) {
+func (c *Client) findRecord(ctx context.Context, domain, host, recordType string) (dnsRecord, error) {
 	endpoint := fmt.Sprintf("%s/my/products/%s/dns/records/", strings.TrimRight(c.apiURL, "/"), url.PathEscape(c.product))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -227,11 +230,11 @@ func (c *Client) findARecord(ctx context.Context, domain, host string) (dnsRecor
 
 	wanted := strings.ToLower(qualifiedHostname(domain, host))
 	for _, record := range result.Records {
-		if strings.EqualFold(record.Type, "A") && strings.ToLower(record.Name) == wanted {
+		if strings.EqualFold(record.Type, recordType) && strings.ToLower(record.Name) == wanted {
 			return record, nil
 		}
 	}
-	return dnsRecord{}, fmt.Errorf("Simply A record %q was not found", wanted)
+	return dnsRecord{}, fmt.Errorf("Simply %s record %q was not found", recordType, wanted)
 }
 
 func qualifiedHostname(domain, host string) string {
