@@ -13,7 +13,7 @@ func TestExecuteHelp(t *testing.T) {
 	if err := execute([]string{"help"}, &output, &output); err != nil {
 		t.Fatalf("execute() error = %v", err)
 	}
-	for _, want := range []string{"GoDDNS", creator, version, "run", "check", "status", "Ejemplos"} {
+	for _, want := range []string{"GoDDNS", creator, version, "run", "check", "status", "Examples"} {
 		if !strings.Contains(output.String(), want) {
 			t.Fatalf("help output missing %q: %s", want, output.String())
 		}
