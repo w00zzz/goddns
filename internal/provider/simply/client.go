@@ -230,11 +230,24 @@ func (c *Client) findRecord(ctx context.Context, domain, host, recordType string
 
 	wanted := strings.ToLower(qualifiedHostname(domain, host))
 	for _, record := range result.Records {
-		if strings.EqualFold(record.Type, recordType) && strings.ToLower(record.Name) == wanted {
+		if strings.EqualFold(record.Type, recordType) && recordNameMatches(record.Name, domain, host) {
 			return record, nil
 		}
 	}
 	return dnsRecord{}, fmt.Errorf("Simply %s record %q was not found", recordType, wanted)
+}
+
+func recordNameMatches(name, domain, host string) bool {
+	name = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(name)), ".")
+	domain = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(domain)), ".")
+	host = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
+	if host == "@" {
+		return name == "" || name == "@" || name == domain
+	}
+	if host == "*" {
+		return name == "*" || name == "*."+domain
+	}
+	return name == host || name == host+"."+domain || name == qualifiedHostname(domain, host)
 }
 
 func qualifiedHostname(domain, host string) string {
