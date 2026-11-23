@@ -1,7 +1,8 @@
 {
   "general": {
     "interval": "10m",
-    "log_level": "info"
+    "log_level": "info",
+    "log_file": ""
   },
   "dns": {
     "provider": "simply",
@@ -25,8 +26,16 @@
       "https://ifconfig.me/ip",
       "https://checkip.amazonaws.com",
       "https://ipinfo.io/ip",
-      "https://ident.me"
+      "https://ident.me",
+      "https://api.seeip.org/",
+      "https://api-ipv4.ip.sb/ip",
+      "https://checkip.dyndns.com/",
+      "https://ipcomet.com/api/me",
+      "https://www.my-ip-is.com/api/ipv4",
+      "https://public-apps.com/what-is-my-ip/txt/",
+      "https://wtfismyip.com/text"
     ],
+
     "min_consensus": 3
   },
   "state": {
