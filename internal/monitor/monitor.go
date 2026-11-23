@@ -81,8 +81,12 @@ func (m *Monitor) Check(ctx context.Context) (CheckResult, error) {
 	targets := configuredRecords(m.config)
 	var updateErrors []error
 	allSynced := true
+	providerKey := m.provider.Name()
+	if mode := strings.ToLower(strings.TrimSpace(m.config.DNS.Mode)); mode != "" {
+		providerKey += "-" + mode
+	}
 	for _, target := range targets {
-		key := storage.RecordKey(m.provider.Name(), target.Domain, target.Host, target.Type)
+		key := storage.RecordKey(providerKey, target.Domain, target.Host, target.Type)
 		if state.RecordSynced(key, currentIPv4.String()) {
 			if m.log != nil {
 				m.log.Info("DNS record unchanged", "domain", target.Domain, "host", target.Host, "ip", currentIPv4.String())
