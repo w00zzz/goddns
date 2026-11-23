@@ -6,7 +6,7 @@ El objetivo final es poder ejecutar GoDDNS como una aplicación puntual o como u
 
 ## Estado del proyecto
 
-El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados y probados los componentes de configuración, descubrimiento de IP y comunicación con Simply.com, pero todavía no existe el flujo completo de ejecución desde el binario principal.
+El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados y probados los componentes de configuración, descubrimiento de IP, almacenamiento, monitor, CLI y comunicación con Simply.com. Todavía faltan el servicio FreeBSD y la validación de una integración real completa.
 
 ### Implementado
 
@@ -28,19 +28,16 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
 - Validación de estado, recuperación tras reinicio y protección de permisos.
 - Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
+- CLI con `run`, `check`, `status` y `version`.
+- Logger estructurado basado en `log/slog`.
 - Compilación sin CGO y sin dependencias externas.
 
 ### Pendiente
 
-- Integrar el monitor con la configuración cargada desde la CLI.
-- Integrar la configuración con el registro de proveedores.
-- Implementar la CLI: `run`, `check`, `status` y `version`.
-- Añadir logging estructurado con `log/slog`.
 - Añadir instalación como servicio `rc.d` en FreeBSD.
-- Completar README operativo, instalación y ejemplos reales.
-- Añadir tests del almacenamiento, monitor y CLI.
-- Realizar una prueba de integración real con una zona DNS controlada.
-- Revisar permisos de configuración y estado.
+- Completar una prueba de integración real con una zona DNS controlada.
+- Añadir opciones de verificación DNS al flujo de ejecución si se desea esperar propagación.
+- Revisar permisos de configuración y estado en la instalación real.
 - Preparar compilaciones y documentación para Linux, Windows y macOS.
 
 ## Requisitos
@@ -65,7 +62,7 @@ internal/provider/simply/   DynDNS2 y API REST de Simply
 internal/dnscheck/          Verificación de resolución DNS
 internal/storage/           Persistencia atómica del estado
 internal/monitor/           Orquestación del ciclo de actualización
-internal/logger/            Logger, pendiente de implementación
+internal/logger/            Logger estructurado con `log/slog`
 ```
 
 ## Configuración
@@ -136,7 +133,7 @@ La API REST realiza una actualización completa del registro, por lo que el regi
 
 ## Uso actual
 
-El cargador puede probarse desde Go, pero la CLI todavía no está conectada al flujo principal. El binario actual contiene únicamente un `main()` mínimo.
+La CLI ya está conectada al flujo principal. `check` consulta la IP pública sin modificar DNS; `run` inicia el monitor en primer plano; `status` muestra el estado persistido.
 
 Para ejecutar los tests:
 
@@ -153,9 +150,7 @@ go tool cover -func=coverage.out
 go tool cover -html=coverage.out -o coverage.html
 ```
 
-Para probar manualmente el descubrimiento se puede crear temporalmente un pequeño programa que utilice `discovery.NewSources` y `discovery.Discover`. Esta prueba depende de Internet y no sustituye los tests con `httptest`.
-
-Los comandos previstos, todavía pendientes de implementar, son:
+Las comprobaciones reales dependen de Internet y de credenciales válidas de Simply.com. Los comandos disponibles son:
 
 ```bash
 goddns run --config /etc/goddns/config.json
