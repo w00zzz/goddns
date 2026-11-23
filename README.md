@@ -27,12 +27,12 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Verificación DNS mediante `net.Resolver` en `internal/dnscheck`.
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
 - Validación de estado, recuperación tras reinicio y protección de permisos.
+- Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
 - Compilación sin CGO y sin dependencias externas.
 
 ### Pendiente
 
-- Implementar el monitor y el ciclo periódico con `time.Ticker`.
-- Integrar discovery, proveedor, verificación DNS y almacenamiento.
+- Integrar el monitor con la configuración cargada desde la CLI.
 - Integrar la configuración con el registro de proveedores.
 - Implementar la CLI: `run`, `check`, `status` y `version`.
 - Añadir logging estructurado con `log/slog`.
@@ -64,7 +64,7 @@ internal/provider/          Interfaz y registro de proveedores
 internal/provider/simply/   DynDNS2 y API REST de Simply
 internal/dnscheck/          Verificación de resolución DNS
 internal/storage/           Persistencia atómica del estado
-internal/monitor/           Monitor, pendiente de implementación
+internal/monitor/           Orquestación del ciclo de actualización
 internal/logger/            Logger, pendiente de implementación
 ```
 
