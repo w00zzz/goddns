@@ -196,16 +196,21 @@ Pendiente:
 - Integrar logs detallados de cada comprobación y error del monitor.
 - Revisar formato final para FreeBSD.
 
-### Prioridad 3 — Servicio y documentación operativa
+### Servicios y documentación operativa
 
-Falta crear:
+Implementado:
 
 - `packaging/freebsd/goddns` como script `rc.d`.
-- `packaging/linux/goddns.service`.
-- Instalación en `/usr/local/bin/goddns`.
-- Configuración en `/usr/local/etc/goddns/config.json`.
-- Estado en `/var/db/goddns/`.
-- Revisar README con instalación real y rutas finales de FreeBSD.
+- `packaging/linux/goddns.service` para systemd.
+- Documentación de instalación para FreeBSD y Linux en `README.md`.
+- El servicio ejecuta GoDDNS en primer plano; el sistema operativo gestiona el ciclo de vida.
+
+Pendiente:
+
+- Probar el script en un host FreeBSD real.
+- Probar la unidad en una distribución Linux real.
+- Ajustar usuarios, grupos, permisos y rutas según el sistema objetivo.
+- Añadir instalador o instrucciones automatizadas si fuese necesario.
 
 ## Comandos de verificación
 
@@ -254,4 +259,4 @@ La suite completa pasa con `CGO_ENABLED=0` y `go vet ./...` no informa errores d
 
 ## Siguiente acción recomendada
 
-Implementar los scripts de servicio FreeBSD/Linux y realizar una prueba de integración real con Simply y una zona DNS controlada.
+Probar la CLI y los servicios en un entorno real, realizar una actualización controlada en Simply y después completar los ajustes de integración y seguridad.
