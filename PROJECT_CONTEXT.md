@@ -31,6 +31,7 @@ Implementado:
 - `GeneralConfig.Interval time.Duration`.
 - Parseo de duraciones como `"10m"`.
 - `Load(path)` mediante `os.ReadFile` y `encoding/json`.
+- Configuración opcional de archivo de logs y endpoints personalizados.
 - Rechazo de campos desconocidos.
 - Rechazo de múltiples valores JSON o JSON adicional.
 - `Config.Validate()`.
@@ -57,6 +58,7 @@ Implementado:
 - `Discover(ctx, sources, minimumConsensus)`.
 - Consultas concurrentes.
 - Ignora fuentes fallidas y solo devuelve una IP con consenso suficiente.
+- Logging opcional de fuente, IP, duración, errores y consenso.
 
 Tests:
 
@@ -92,7 +94,7 @@ Implementado:
 - Timeout, context cancellation y límite de respuestas.
 - Tests con `httptest` para ambos modos.
 
-La construcción configurada se realiza mediante `simply.NewConfigured(simply.Config{...})`. Todavía no está conectada al loader ni al monitor.
+La construcción configurada se realiza mediante `simply.NewConfigured(simply.Config{...})`. Los endpoints pueden sustituirse para usar el servidor mock local.
 
 ### Verificación DNS — `internal/dnscheck`
 
@@ -144,6 +146,17 @@ Pendiente:
 - Decidir si el `record_id` descubierto debe persistirse.
 - Añadir una opción de configuración para activar la espera de verificación DNS.
 
+### Servidor de prueba Simply — `cmd/simply-mock`
+
+Implementado:
+
+- Endpoint `/myip` para una fuente local.
+- Endpoint DynDNS2 `/nic/update`.
+- Endpoint REST de registros DNS.
+- Basic Auth y Bearer Auth.
+- Respuestas `good`, `nochg`, `badauth` y `nohost`.
+- IP, hostname, credenciales y puerto configurables.
+
 ### Monitor — `internal/monitor`
 
 Implementado:
@@ -164,8 +177,7 @@ Tests incluidos para primera ejecución, IP sin cambios, cambios, errores de dis
 
 Pendiente:
 
-- Integrar logs detallados de cada comprobación y error.
-- Añadir una opción para activar la espera de verificación DNS.
+- Añadir una opción de configuración para activar la espera de verificación DNS.
 
 El monitor no importa el paquete `simply` directamente.
 
@@ -179,6 +191,8 @@ Implementado con `flag`:
 - `goddns version`.
 - `goddns help`.
 - `goddns <comando> --help`.
+- `goddns check --verbose`.
+- `goddns run --verbose --log-file PATH`.
 
 La ayuda muestra nombre, creador, versión, opciones y ejemplos. `run` ejecuta el monitor en primer plano y captura SIGINT/SIGTERM. `check` solo descubre y muestra la IP; no actualiza DNS. `status` devuelve el estado JSON persistido.
 
@@ -191,11 +205,10 @@ No introducir Cobra ni otras dependencias.
 
 ### Logging — `internal/logger`
 
-Implementado con `log/slog` y niveles `debug`, `info`, `warn` y `error`.
+Implementado con `log/slog` y niveles `debug`, `info`, `warn` y `error`. Discovery y monitor pueden registrar fuentes, IPs, tiempos, consenso, actualizaciones y errores.
 
 Pendiente:
 
-- Integrar logs detallados de cada comprobación y error del monitor.
 - Revisar formato final para FreeBSD.
 
 ### Servicios y documentación operativa
