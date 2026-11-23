@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# PROVIDE: goddns
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="goddns"
+rcvar="goddns_enable"
+
+load_rc_config "$name"
+
+: "${goddns_enable:="NO"}"
+: "${goddns_user:="goddns"}"
+: "${goddns_program:="/usr/local/bin/goddns"}"
+: "${goddns_config:="/usr/local/etc/goddns/config.json"}"
+: "${goddns_log:="/var/log/goddns.log"}"
+
+pidfile="/var/run/${name}.pid"
+procname="${goddns_program}"
+command="/usr/sbin/daemon"
+command_args="-p ${pidfile} -u ${goddns_user} -o ${goddns_log} ${goddns_program} run --config ${goddns_config}"
+required_files="${goddns_config}"
+
+goddns_precmd()
+{
+	if ! id "${goddns_user}" >/dev/null 2>&1; then
+		echo "User '${goddns_user}' does not exist."
+		return 1
+	fi
+}
+
+start_precmd="goddns_precmd"
+
+run_rc_command "$1"
