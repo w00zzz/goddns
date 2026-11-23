@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -19,12 +20,16 @@ import (
 type fakeProvider struct {
 	requests []provider.UpdateRequest
 	err      error
+	failHost string
 }
 
 func (p *fakeProvider) Name() string { return "fake" }
 
 func (p *fakeProvider) UpdateRecord(_ context.Context, req provider.UpdateRequest) error {
 	p.requests = append(p.requests, req)
+	if p.failHost == req.Host {
+		return errors.New("simulated failure")
+	}
 	return p.err
 }
 
@@ -61,7 +66,13 @@ func TestCheckSynchronizesInitialState(t *testing.T) {
 
 func TestCheckDoesNotUpdateUnchangedIP(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "state.json")
-	if err := storage.Save(path, storage.State{LastIPv4: "198.51.100.10", LastUpdate: "2026-01-02T03:04:05Z"}); err != nil {
+	if err := storage.Save(path, storage.State{
+		LastIPv4:   "198.51.100.10",
+		LastUpdate: "2026-01-02T03:04:05Z",
+		Records: map[string]storage.RecordState{
+			storage.RecordKey("fake", "example.com", "home", "A"): {LastIPv4: "198.51.100.10", LastUpdate: "2026-01-02T03:04:05Z"},
+		},
+	}); err != nil {
 		t.Fatal(err)
 	}
 	p := &fakeProvider{}
@@ -112,7 +123,7 @@ func TestCheckPreservesStateWhenProviderFails(t *testing.T) {
 		t.Fatal("Check() expected provider error")
 	}
 	got, err := storage.Load(path)
-	if err != nil || got != old {
+	if err != nil || !reflect.DeepEqual(got, old) {
 		t.Fatalf("state = %+v, error = %v; want previous state", got, err)
 	}
 }
@@ -145,6 +156,54 @@ func TestCheckDoesNotSaveWhenVerificationFails(t *testing.T) {
 	}
 	if _, err := storage.Load(path); !errors.Is(err, storage.ErrNotFound) {
 		t.Fatalf("state error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestCheckUpdatesMultipleRecordsAndPersistsEach(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	cfg := monitorConfig(path)
+	cfg.DNS.Records = []config.DNSRecordConfig{{Host: "@", Type: "A"}, {Host: "*", Type: "A"}}
+	p := &fakeProvider{}
+	m := NewWithDependencies(cfg, p, func(context.Context) (net.IP, error) {
+		return net.ParseIP("198.51.100.30"), nil
+	})
+
+	result, err := m.Check(context.Background())
+	if err != nil || !result.Updated || len(p.requests) != 2 {
+		t.Fatalf("result = %+v, requests = %+v, error = %v", result, p.requests, err)
+	}
+	state, err := storage.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(state.Records) != 2 {
+		t.Fatalf("record states = %+v, want 2 records", state.Records)
+	}
+}
+
+func TestCheckPersistsSuccessfulRecordWhenAnotherFails(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	cfg := monitorConfig(path)
+	cfg.DNS.Records = []config.DNSRecordConfig{{Host: "@", Type: "A"}, {Host: "*", Type: "A"}}
+	p := &fakeProvider{failHost: "*"}
+	m := NewWithDependencies(cfg, p, func(context.Context) (net.IP, error) {
+		return net.ParseIP("198.51.100.40"), nil
+	})
+
+	if _, err := m.Check(context.Background()); err == nil {
+		t.Fatal("Check() expected partial update error")
+	}
+	state, err := storage.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := storage.RecordKey("fake", "example.com", "@", "A")
+	if !state.RecordSynced(key, "198.51.100.40") {
+		t.Fatalf("successful record was not persisted: %+v", state.Records)
+	}
+	failedKey := storage.RecordKey("fake", "example.com", "*", "A")
+	if state.RecordSynced(failedKey, "198.51.100.40") {
+		t.Fatalf("failed record was incorrectly persisted: %+v", state.Records)
 	}
 }
 
