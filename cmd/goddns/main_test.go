@@ -8,6 +8,28 @@ import (
 	"testing"
 )
 
+func TestExecuteHelp(t *testing.T) {
+	var output bytes.Buffer
+	if err := execute([]string{"help"}, &output, &output); err != nil {
+		t.Fatalf("execute() error = %v", err)
+	}
+	for _, want := range []string{"GoDDNS", creator, version, "run", "check", "status", "Ejemplos"} {
+		if !strings.Contains(output.String(), want) {
+			t.Fatalf("help output missing %q: %s", want, output.String())
+		}
+	}
+}
+
+func TestExecuteCommandHelp(t *testing.T) {
+	var output bytes.Buffer
+	if err := execute([]string{"run", "--help"}, &output, &output); err != nil {
+		t.Fatalf("execute() error = %v", err)
+	}
+	if !strings.Contains(output.String(), "goddns run") || !strings.Contains(output.String(), "--config") {
+		t.Fatalf("run help output = %q", output.String())
+	}
+}
+
 func TestExecuteVersion(t *testing.T) {
 	var output bytes.Buffer
 	if err := execute([]string{"version"}, &output, &output); err != nil {
