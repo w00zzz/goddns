@@ -136,8 +136,13 @@ func (m *Monitor) Run(ctx context.Context) error {
 	if m.config.General.Interval <= 0 {
 		return fmt.Errorf("monitor interval must be greater than zero")
 	}
-	if _, err := m.Check(ctx); err != nil && ctx.Err() != nil {
-		return ctx.Err()
+	if _, err := m.Check(ctx); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if m.log != nil {
+			m.log.Error("initial monitor check failed", "error", err)
+		}
 	}
 
 	ticker := time.NewTicker(m.config.General.Interval)
