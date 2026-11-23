@@ -50,6 +50,8 @@ func execute(args []string, stdout, stderr io.Writer) error {
 		return runCommand(args[1:], stdout, stderr)
 	case "check":
 		return checkCommand(args[1:], stdout, stderr)
+	case "sync":
+		return syncCommand(args[1:], stdout, stderr)
 	case "status":
 		return statusCommand(args[1:], stdout, stderr)
 	case "version":
@@ -130,6 +132,43 @@ func checkCommand(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("discover public IP: %w", err)
 	}
 	_, err = fmt.Fprintln(stdout, ip.String())
+	return err
+}
+
+func syncCommand(args []string, stdout, stderr io.Writer) error {
+	if hasHelpFlag(args) {
+		return printHelp(stdout, "sync")
+	}
+	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	configPath := fs.String("config", "config.json", "path to JSON configuration")
+	verbose := fs.Bool("verbose", false, "enable detailed logs")
+	logFile := fs.String("log-file", "", "write logs to this file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	cfg, dnsProvider, sources, err := loadRuntime(*configPath)
+	if err != nil {
+		return err
+	}
+	log, closeLog, err := newLogger(cfg.General.LogLevel, cfg.General.LogFile, *logFile, *verbose, stderr)
+	if err != nil {
+		return err
+	}
+	defer closeLog()
+	m := monitor.NewWithDependencies(cfg, dnsProvider, func(ctx context.Context) (net.IP, error) {
+		return discovery.DiscoverWithLogger(ctx, sources, cfg.Discovery.MinConsensus, log)
+	})
+	m.SetLogger(log)
+	result, err := m.Check(context.Background())
+	if err != nil {
+		return fmt.Errorf("synchronization failed: %w", err)
+	}
+	if result.Updated {
+		_, err = fmt.Fprintf(stdout, "synchronization successful: %s\\n", result.CurrentIP)
+	} else {
+		_, err = fmt.Fprintf(stdout, "synchronization complete: IP unchanged (%s)\\n", result.CurrentIP)
+	}
 	return err
 }
 
@@ -220,6 +259,7 @@ Usage:
 Commands:
   run       Run the monitor in the foreground
   check     Check the public IP without changing DNS
+  sync      Check and update DNS once, then exit
   status    Show the persisted state
   version   Show the version
   help      Show this help or command-specific help
@@ -230,10 +270,28 @@ Common options:
 Examples:
   goddns check --config ./config.json
   goddns run --config /etc/goddns/config.json
+  goddns sync --config ./config.json
   goddns status --config /var/lib/goddns/config.json
   goddns version
   goddns help run
 `, creator, version)
+	case "sync":
+		text = `GoDDNS sync - update DNS once and exit
+
+Usage:
+  goddns sync [--config PATH] [--verbose] [--log-file PATH]
+
+Options:
+  --config PATH    Path to the JSON file (default: config.json)
+  --verbose        Enable detailed source and update logs
+  --log-file PATH  Write logs to this file
+  -h, --help       Show help
+
+Example:
+  goddns sync --config ./config.json
+
+This command performs one synchronization and exits.
+`
 	case "run":
 		text = `GoDDNS run - run the monitor in the foreground
 
