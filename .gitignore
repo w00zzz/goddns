@@ -1,6 +1,7 @@
 # Configuración y secretos locales
 config.json
 configs/config.json
+config-*.json
 *.local.json
 .env
 .env.*
@@ -13,6 +14,8 @@ state.json
 # Binarios y builds
 /goddns
 /goddns.exe
+goddns-*
+
 /bin/
 /dist/
 /build/
