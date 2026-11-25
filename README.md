@@ -30,7 +30,7 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
 - Validación de estado, recuperación tras reinicio y protección de permisos.
 - Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
-- CLI con `run`, `check`, `sync`, `status`, `version` y `help`.
+- CLI con `run`, `check`, `sync`, `install`, `status`, `version` y `help`.
 - Ayuda general y específica por comando con opciones y ejemplos.
 - Modo `--verbose` para mostrar cada fuente, respuesta, duración y consenso.
 - Escritura opcional de logs mediante `--log-file` o `general.log_file`.
@@ -175,6 +175,25 @@ goddns version
 goddns help
 goddns run --help
 ```
+
+## Instalación automática
+
+El comando `install` muestra un plan y solicita confirmación antes de modificar el sistema:
+
+```bash
+goddns install --dry-run --config ./config.json
+sudo goddns install --config ./config.json --enable --start
+```
+
+Opciones:
+
+- `--platform auto|freebsd|linux`.
+- `--dry-run` muestra el plan sin modificar nada.
+- `--yes` omite la confirmación.
+- `--enable` activa el servicio al arrancar.
+- `--start` inicia el servicio al terminar.
+
+El instalador crea o verifica el usuario `goddns`, crea directorios, instala el binario, realiza una copia `.bak` de la configuración existente, instala el servicio y aplica permisos restrictivos. Requiere privilegios de root salvo cuando se usa `--dry-run`.
 
 ## Ejecución como servicio
 
