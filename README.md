@@ -35,6 +35,7 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Modo `--verbose` para mostrar cada fuente, respuesta, duración y consenso.
 - Escritura opcional de logs mediante `--log-file` o `general.log_file`.
 - Logger estructurado basado en `log/slog`.
+- Versión automática con commit Git y marca `-dirty` para builds con cambios sin confirmar.
 - Compilación sin CGO y sin dependencias externas.
 
 ### Pendiente
@@ -148,6 +149,15 @@ La API REST realiza una actualización completa del registro, por lo que el regi
 ## Uso actual
 
 La CLI ya está conectada al flujo principal. `check` consulta la IP pública sin modificar DNS; `sync` actualiza una vez y sale; `run` inicia el monitor en primer plano; `status` muestra el estado persistido.
+
+La versión de un binario compilado incluye el commit Git cuando la información está disponible:
+
+```bash
+goddns version
+# 0.1.0-dev+abc1234
+```
+
+Si el árbol tenía cambios sin confirmar, aparecerá el sufijo `-dirty`.
 
 Para ejecutar los tests:
 
