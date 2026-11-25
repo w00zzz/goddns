@@ -7,9 +7,9 @@
   "dns": {
     "provider": "simply",
     "mode": "dyndns2",
-    "domain": "lumiar.info",
-    "host": "home",
-    "product": "lumiar.info",
+    "domain": "",
+    "host": "",
+    "product": "",
     "record_id": 0,
     "ttl": 3600,
     "credentials": {
