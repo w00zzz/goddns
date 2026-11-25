@@ -30,7 +30,7 @@ El proyecto se encuentra en desarrollo del MVP `v0.1.0`. Ya están implementados
 - Persistencia de estado JSON con escritura atómica y sincronización a disco.
 - Validación de estado, recuperación tras reinicio y protección de permisos.
 - Monitor con comprobación inicial, detección de cambios, reintentos y cancelación.
-- CLI con `run`, `check`, `sync`, `install`, `status`, `version` y `help`.
+- CLI con `run`, `check`, `sync`, `install`, `uninstall`, `status`, `version` y `help`.
 - Ayuda general y específica por comando con opciones y ejemplos.
 - Modo `--verbose` para mostrar cada fuente, respuesta, duración y consenso.
 - Escritura opcional de logs mediante `--log-file` o `general.log_file`.
@@ -194,6 +194,21 @@ Opciones:
 - `--start` inicia el servicio al terminar.
 
 El instalador crea o verifica el usuario `goddns`, crea directorios, instala el binario, realiza una copia `.bak` de la configuración existente, instala el servicio y aplica permisos restrictivos. Requiere privilegios de root salvo cuando se usa `--dry-run`.
+
+Para desinstalar sin borrar datos:
+
+```bash
+goddns uninstall --dry-run
+sudo goddns uninstall
+```
+
+Por defecto conserva configuración, estado y logs. Para eliminar también esos datos:
+
+```bash
+sudo goddns uninstall --purge --remove-user
+```
+
+La desinstalación solo opera sobre las rutas estándar de GoDDNS.
 
 ## Ejecución como servicio
 
