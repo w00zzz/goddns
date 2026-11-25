@@ -28,6 +28,19 @@ func TestBuildPlan(t *testing.T) {
 	}
 }
 
+func TestBuildUninstallPlanPreservesDataByDefault(t *testing.T) {
+	plan, err := BuildUninstallPlan("freebsd", false, false)
+	if err != nil {
+		t.Fatalf("BuildUninstallPlan() error = %v", err)
+	}
+	if len(plan.Paths) != 2 {
+		t.Fatalf("paths = %v, want only binary and service", plan.Paths)
+	}
+	if strings.Contains(plan.String(), "/var/db/goddns") {
+		t.Fatal("default uninstall should preserve state")
+	}
+}
+
 func TestBuildLinuxPlan(t *testing.T) {
 	configPath := t.TempDir() + "/config.json"
 	content := `{"general":{"interval":"1m","log_level":"info"},"dns":{"provider":"simply","domain":"example.com","host":"home","credentials":{"account":"account","api_key":"key"}},"discovery":{"ipv4":true,"sources":["https://api.ipify.org"],"min_consensus":1},"state":{"path":"/var/lib/goddns/state.json"}}`
