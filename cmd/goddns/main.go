@@ -55,6 +55,8 @@ func execute(args []string, stdout, stderr io.Writer) error {
 		return syncCommand(args[1:], stdout, stderr)
 	case "install":
 		return installCommand(args[1:], stdout, stderr)
+	case "uninstall":
+		return uninstallCommand(args[1:], stdout, stderr)
 	case "status":
 		return statusCommand(args[1:], stdout, stderr)
 	case "version":
@@ -154,6 +156,23 @@ func installCommand(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	return install.Run(context.Background(), install.Options{ConfigPath: *configPath, Platform: *platform, DryRun: *dryRun, Yes: *yes, Enable: *enable, Start: *start, Output: stdout})
+}
+
+func uninstallCommand(args []string, stdout, stderr io.Writer) error {
+	if hasHelpFlag(args) {
+		return printHelp(stdout, "uninstall")
+	}
+	fs := flag.NewFlagSet("uninstall", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	platform := fs.String("platform", "auto", "installation platform: auto, freebsd, or linux")
+	dryRun := fs.Bool("dry-run", false, "show the plan without changing the system")
+	yes := fs.Bool("yes", false, "skip confirmation")
+	purge := fs.Bool("purge", false, "also remove configuration, state and logs")
+	removeUser := fs.Bool("remove-user", false, "also remove the goddns system user")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return install.Uninstall(context.Background(), install.UninstallOptions{Platform: *platform, DryRun: *dryRun, Yes: *yes, Purge: *purge, RemoveUser: *removeUser, Output: stdout})
 }
 
 func syncCommand(args []string, stdout, stderr io.Writer) error {
@@ -282,6 +301,7 @@ Commands:
   check     Check the public IP without changing DNS
   sync      Check and update DNS once, then exit
   install   Install GoDDNS as a system service
+  uninstall Remove GoDDNS from the system
   status    Show the persisted state
   version   Show the version
   help      Show this help or command-specific help
@@ -316,6 +336,27 @@ Examples:
   sudo goddns install --config ./config.json --enable --start
 
 The installer displays its plan and asks for confirmation unless --yes is used.
+`
+	case "uninstall":
+		text = `GoDDNS uninstall - remove the service
+
+Usage:
+  sudo goddns uninstall [options]
+
+Options:
+  --platform NAME  auto, freebsd, or linux (default: auto)
+  --dry-run        Show the plan without changing the system
+  --purge          Also remove configuration, state and logs
+  --remove-user    Also remove the goddns system user
+  --yes            Skip confirmation
+  -h, --help       Show help
+
+Examples:
+  goddns uninstall --dry-run
+  sudo goddns uninstall
+  sudo goddns uninstall --purge --remove-user
+
+Configuration, state and logs are preserved unless --purge is specified.
 `
 	case "sync":
 		text = `GoDDNS sync - update DNS once and exit
