@@ -15,6 +15,7 @@ import (
 
 	"github.com/w00zzz/goddns/internal/config"
 	"github.com/w00zzz/goddns/internal/discovery"
+	"github.com/w00zzz/goddns/internal/install"
 	"github.com/w00zzz/goddns/internal/logger"
 	"github.com/w00zzz/goddns/internal/monitor"
 	"github.com/w00zzz/goddns/internal/provider"
@@ -52,6 +53,8 @@ func execute(args []string, stdout, stderr io.Writer) error {
 		return checkCommand(args[1:], stdout, stderr)
 	case "sync":
 		return syncCommand(args[1:], stdout, stderr)
+	case "install":
+		return installCommand(args[1:], stdout, stderr)
 	case "status":
 		return statusCommand(args[1:], stdout, stderr)
 	case "version":
@@ -133,6 +136,24 @@ func checkCommand(args []string, stdout, stderr io.Writer) error {
 	}
 	_, err = fmt.Fprintln(stdout, ip.String())
 	return err
+}
+
+func installCommand(args []string, stdout, stderr io.Writer) error {
+	if hasHelpFlag(args) {
+		return printHelp(stdout, "install")
+	}
+	fs := flag.NewFlagSet("install", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	configPath := fs.String("config", "config.json", "path to JSON configuration")
+	platform := fs.String("platform", "auto", "installation platform: auto, freebsd, or linux")
+	dryRun := fs.Bool("dry-run", false, "show the plan without changing the system")
+	yes := fs.Bool("yes", false, "skip confirmation")
+	enable := fs.Bool("enable", false, "enable the service at boot")
+	start := fs.Bool("start", false, "start the service after installation")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return install.Run(context.Background(), install.Options{ConfigPath: *configPath, Platform: *platform, DryRun: *dryRun, Yes: *yes, Enable: *enable, Start: *start, Output: stdout})
 }
 
 func syncCommand(args []string, stdout, stderr io.Writer) error {
@@ -260,6 +281,7 @@ Commands:
   run       Run the monitor in the foreground
   check     Check the public IP without changing DNS
   sync      Check and update DNS once, then exit
+  install   Install GoDDNS as a system service
   status    Show the persisted state
   version   Show the version
   help      Show this help or command-specific help
@@ -275,6 +297,26 @@ Examples:
   goddns version
   goddns help run
 `, creator, version)
+	case "install":
+		text = `GoDDNS install - install the service
+
+Usage:
+  sudo goddns install --config PATH [options]
+
+Options:
+  --platform NAME  auto, freebsd, or linux (default: auto)
+  --dry-run        Show the plan without changing the system
+  --yes            Skip confirmation
+  --enable         Enable the service at boot
+  --start          Start the service after installation
+  -h, --help       Show help
+
+Examples:
+  goddns install --dry-run --config ./config.json
+  sudo goddns install --config ./config.json --enable --start
+
+The installer displays its plan and asks for confirmation unless --yes is used.
+`
 	case "sync":
 		text = `GoDDNS sync - update DNS once and exit
 
