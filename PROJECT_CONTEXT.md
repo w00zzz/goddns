@@ -193,6 +193,7 @@ Implementado con `flag`:
 - `goddns run --config PATH`.
 - `goddns check --config PATH`.
 - `goddns sync --config PATH`.
+- `goddns install --config PATH`.
 - `goddns status --config PATH`.
 - `goddns version`.
 - `goddns help`.
@@ -217,6 +218,25 @@ Implementado con `log/slog` y niveles `debug`, `info`, `warn` y `error`. Discove
 Pendiente:
 
 - Revisar formato final para FreeBSD.
+
+### Instalador — `internal/install`
+
+Implementado:
+
+- `goddns install` interactivo.
+- `--dry-run` para revisar el plan.
+- Confirmación antes de modificar el sistema.
+- `--yes` para automatización.
+- Detección de FreeBSD/Linux.
+- Creación del usuario `goddns`.
+- Instalación del binario, configuración y servicio.
+- Backup de configuración existente.
+- Opciones `--enable` y `--start`.
+
+Pendiente:
+
+- Probar la instalación real en un host FreeBSD y Linux.
+- Revisar actualizaciones de instalaciones existentes.
 
 ### Servicios y documentación operativa
 
