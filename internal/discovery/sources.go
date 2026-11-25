@@ -15,15 +15,12 @@ const (
 	maxIPResponseSize  = 4 * 1024
 )
 
-// HTTPSource obtains an IPv4 address from an HTTP endpoint that returns it as text.
 type HTTPSource struct {
 	name   string
 	url    string
 	client *http.Client
 }
 
-// NewHTTPSource creates an HTTP-backed IP source. A nil client gets a client
-// with the default discovery timeout.
 func NewHTTPSource(name, endpoint string, client *http.Client) *HTTPSource {
 	if client == nil {
 		client = &http.Client{Timeout: defaultHTTPTimeout}
@@ -69,7 +66,6 @@ func (s *HTTPSource) GetIP(ctx context.Context) (net.IP, error) {
 	return ip.To4(), nil
 }
 
-// NewSources creates HTTP sources from configured endpoints.
 func NewSources(endpoints []string, client *http.Client) []IPSource {
 	sources := make([]IPSource, 0, len(endpoints))
 	for _, endpoint := range endpoints {

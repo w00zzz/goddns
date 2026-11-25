@@ -14,8 +14,6 @@ type sourceResult struct {
 	err error
 }
 
-// Discover queries all sources concurrently and returns an IP only when the
-// configured minimum number of sources agree.
 func Discover(ctx context.Context, sources []IPSource, minimumConsensus int) (net.IP, error) {
 	return DiscoverWithLogger(ctx, sources, minimumConsensus, nil)
 }
@@ -63,8 +61,6 @@ func DiscoverWithLogger(ctx context.Context, sources []IPSource, minimumConsensu
 		key := result.ip.String()
 		counts[key]++
 		if counts[key] >= minimumConsensus {
-			// Continue receiving results so all source goroutines can finish cleanly.
-			// The result is returned after the channel has been drained below.
 		}
 	}
 

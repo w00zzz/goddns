@@ -17,7 +17,6 @@ ProtectHome=true
 ProtectSystem=strict
 ReadWritePaths=/var/lib/goddns
 
-# GoDDNS writes structured logs to stderr/stdout. systemd-journald collects them.
 StandardOutput=journal
 StandardError=journal
 

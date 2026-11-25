@@ -8,7 +8,6 @@ import (
 	"os"
 )
 
-// Load reads, decodes, and validates a JSON configuration file.
 func Load(path string) (*Config, error) {
 	if path == "" {
 		return nil, fmt.Errorf("configuration path is required")

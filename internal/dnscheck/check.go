@@ -11,7 +11,6 @@ type Resolver interface {
 	LookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 }
 
-// Verify checks that the public DNS resolver returns the expected IPv4 address.
 func Verify(ctx context.Context, resolver Resolver, hostname string, expected net.IP) error {
 	if hostname == "" {
 		return fmt.Errorf("hostname is required")
@@ -36,7 +35,6 @@ func Verify(ctx context.Context, resolver Resolver, hostname string, expected ne
 	return fmt.Errorf("DNS record %q does not match expected IP %s", hostname, want)
 }
 
-// WaitForIP retries DNS verification until it succeeds or the context expires.
 func WaitForIP(ctx context.Context, resolver Resolver, hostname string, expected net.IP, interval time.Duration) error {
 	if interval <= 0 {
 		interval = time.Second

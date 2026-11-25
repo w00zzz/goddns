@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// Registry stores DNS providers by their configured name.
 type Registry struct {
 	providers map[string]DNSProvider
 }

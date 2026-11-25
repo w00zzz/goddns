@@ -20,7 +20,6 @@ type GeneralConfig struct {
 	LogFile  string        `json:"log_file"`
 }
 
-// UnmarshalJSON accepts duration strings such as "10m" or "1h30m".
 func (c *GeneralConfig) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		Interval string `json:"interval"`

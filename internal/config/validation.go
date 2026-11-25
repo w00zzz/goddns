@@ -13,7 +13,6 @@ var validLogLevels = map[string]bool{
 	"error": true,
 }
 
-// Validate checks that the configuration contains all values required by the MVP.
 func (c Config) Validate() error {
 	if c.General.Interval <= 0 {
 		return fmt.Errorf("general.interval must be greater than zero")
