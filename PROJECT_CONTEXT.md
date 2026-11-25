@@ -194,6 +194,7 @@ Implementado con `flag`:
 - `goddns check --config PATH`.
 - `goddns sync --config PATH`.
 - `goddns install --config PATH`.
+- `goddns uninstall`.
 - `goddns status --config PATH`.
 - `goddns version`.
 - `goddns help`.
@@ -233,6 +234,14 @@ Implementado:
 - Backup de configuración existente.
 - Opciones `--enable` y `--start`.
 
+Desinstalador implementado:
+
+- `goddns uninstall` interactivo.
+- `--dry-run`, `--yes`, `--purge` y `--remove-user`.
+- Detención y desactivación del servicio.
+- Eliminación únicamente de rutas estándar de GoDDNS.
+- Conservación de configuración, estado y logs por defecto.
+
 Pendiente:
 
 - Probar la instalación real en un host FreeBSD y Linux.
@@ -252,7 +261,7 @@ Pendiente:
 - Probar el script en un host FreeBSD real.
 - Probar la unidad en una distribución Linux real.
 - Ajustar usuarios, grupos, permisos y rutas según el sistema objetivo.
-- Añadir instalador o instrucciones automatizadas si fuese necesario.
+- Probar el instalador y desinstalador reales en un host FreeBSD y Linux.
 
 ## Comandos de verificación
 
