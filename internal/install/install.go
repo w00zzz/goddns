@@ -134,7 +134,7 @@ func Run(ctx context.Context, opts Options) error {
 
 func executePlan(ctx context.Context, opts Options, plan Plan) error {
 	if _, err := user.Lookup("goddns"); err != nil {
-		var unknown *user.UnknownUserError
+		var unknown user.UnknownUserError
 		if !errors.As(err, &unknown) {
 			return fmt.Errorf("look up goddns user: %w", err)
 		}
