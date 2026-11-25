@@ -310,15 +310,6 @@ goddns check \
 
 Las opciones de endpoint (`dns.ddns_endpoint` y `dns.api_endpoint`) permiten apuntar temporalmente el proveedor al servidor mock.
 
-## Seguridad
-
-- No subas `configs/config.json` al repositorio.
-- No publiques la API key.
-- Usa permisos `0600` para la configuración.
-- No incluyas credenciales en logs ni errores.
-- No actualices DNS cuando no se alcance consenso.
-- No guardes una IP nueva si la actualización DNS falla.
-- Recuerda que la verificación DNS puede verse afectada por cachés y propagación.
 
 ## Simply.com
 
