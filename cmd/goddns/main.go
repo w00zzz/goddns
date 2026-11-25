@@ -11,6 +11,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/w00zzz/goddns/internal/config"
@@ -23,10 +25,37 @@ import (
 	"github.com/w00zzz/goddns/internal/storage"
 )
 
-const (
-	version = "0.1.0-dev"
-	creator = "lumiar.info"
-)
+const creator = "lumiar.info"
+
+var version = "0.1.0-dev"
+
+func buildVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return version
+	}
+	var revision string
+	modified := false
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			revision = setting.Value
+		case "vcs.modified":
+			modified = setting.Value == "true"
+		}
+	}
+	if revision == "" {
+		return version
+	}
+	if len(revision) > 7 {
+		revision = revision[:7]
+	}
+	suffix := "+" + revision
+	if modified {
+		suffix += "-dirty"
+	}
+	return strings.TrimSpace(version) + suffix
+}
 
 func main() {
 	if err := execute(os.Args[1:], os.Stdout, os.Stderr); err != nil {
@@ -63,7 +92,7 @@ func execute(args []string, stdout, stderr io.Writer) error {
 		if len(args) != 1 {
 			return fmt.Errorf("version does not accept arguments")
 		}
-		_, err := fmt.Fprintln(stdout, version)
+		_, err := fmt.Fprintln(stdout, buildVersion())
 		return err
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
@@ -91,7 +120,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	defer closeLog()
-	log.Info("starting GoDDNS", "version", version)
+	log.Info("starting GoDDNS", "version", buildVersion())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -316,7 +345,7 @@ Examples:
   goddns status --config /var/lib/goddns/config.json
   goddns version
   goddns help run
-`, creator, version)
+`, creator, buildVersion())
 	case "install":
 		text = `GoDDNS install - install the service
 
@@ -425,7 +454,7 @@ Example:
   goddns status --config /etc/goddns/config.json
 `
 	case "version":
-		text = fmt.Sprintf("GoDDNS version %s\\nCreator: %s\\n", version, creator)
+		text = fmt.Sprintf("GoDDNS version %s\\nCreator: %s\\n", buildVersion(), creator)
 	default:
 		return fmt.Errorf("unknown help topic %q", command)
 	}
